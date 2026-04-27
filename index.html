@@ -34,6 +34,7 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 .trip-dest{font-size:20px;font-weight:500}.trip-period{font-size:13px;color:#666;margin-top:2px}
 .trip-body{display:grid;grid-template-columns:320px 1fr;gap:12px;align-items:start}
 .trip-row2{display:grid;grid-template-columns:320px 1fr;gap:12px;margin-top:12px;align-items:start}
+.trip-row3{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;align-items:start}
 .panel{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:12px;overflow:hidden}
 .panel-head{display:flex;align-items:center;justify-content:space-between;padding:.75rem .9rem;border-bottom:0.5px solid rgba(0,0,0,.07)}
 .panel-title{font-size:11px;font-weight:500;color:#999;text-transform:uppercase;letter-spacing:.05em}
@@ -43,26 +44,30 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 .map-fixed-panel{height:640px;display:flex;flex-direction:column}
 .map-fixed-panel .map-search-bar{flex-shrink:0}.map-fixed-panel #gmap{flex:1}
 .map-fixed-panel .map-info-bar,.map-fixed-panel .map-add-bar{flex-shrink:0}
-
-/* 타임라인 */
-.day-group{margin-bottom:6px}
-.day-header{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:500;color:#666;border-bottom:0.5px solid rgba(0,0,0,.07);margin-bottom:4px;transition:background .1s;user-select:none}
-.day-header:hover{background:#f0f0f0}
-.day-header.active-day{background:#f0f0ee;color:#1a1a1a}
-.day-header-label{flex:1}
-.day-header-hint{font-size:10px;color:#bbb}
-.tl-item{display:flex;align-items:center;gap:7px;padding:5px 4px;border-radius:7px;cursor:pointer;transition:background .1s}
+.note-panel{height:400px;display:flex;flex-direction:column}
+.note-panel .panel-head{flex-shrink:0}
+.note-body{flex:1;padding:.8rem .9rem;display:flex;flex-direction:column}
+.note-textarea{flex:1;border:none;outline:none;resize:none;font-family:inherit;font-size:13px;color:#1a1a1a;background:transparent;line-height:1.7}
+.note-footer{font-size:11px;color:#ccc;text-align:right;padding-top:6px;border-top:0.5px solid rgba(0,0,0,.06);margin-top:6px}
+.checklist-panel{height:400px;display:flex;flex-direction:column}
+.checklist-panel .panel-head{flex-shrink:0}
+.checklist-body{flex:1;overflow-y:auto;padding:.6rem .9rem;overscroll-behavior:contain}
+.chk-item{display:flex;align-items:center;gap:8px;padding:5px 2px;border-radius:6px;group}
+.chk-item:hover .chk-del{opacity:1}
+.chk-cb{width:15px;height:15px;cursor:pointer;accent-color:#1a1a1a;flex-shrink:0}
+.chk-label{flex:1;font-size:13px;cursor:pointer;line-height:1.4}
+.chk-label.done{text-decoration:line-through;color:#bbb}
+.chk-del{font-size:11px;color:#ccc;cursor:pointer;padding:2px 4px;border-radius:4px;opacity:0;transition:opacity .1s;flex-shrink:0}
+.chk-del:hover{color:#c00;background:#fff0f0}
+.chk-add-row{display:flex;gap:6px;padding:.6rem .9rem;border-top:0.5px solid rgba(0,0,0,.07);flex-shrink:0}
+.chk-add-input{flex:1;border:0.5px solid rgba(0,0,0,.2);border-radius:7px;padding:5px 8px;font-size:13px;font-family:inherit;background:#fff}
+.day-lbl{font-size:11px;color:#999;padding:3px 0;border-bottom:0.5px solid rgba(0,0,0,.07);margin-bottom:4px}
+.tl-item{display:flex;align-items:center;gap:7px;padding:4px 4px;border-radius:7px;cursor:pointer;transition:background .1s}
 .tl-item:hover{background:#f4f4f2}.tl-item.sel{background:#f0f0ee;border-left:2.5px solid #1a1a1a;padding-left:5px}
 .tl-txt{flex:1;min-width:0}
 .tl-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tl-ref{font-size:11px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .time-dot{width:7px;height:7px;border-radius:50%;background:#ddd;flex-shrink:0}.time-dot.has-place{background:#1a1a1a}
-
-/* 드롭존 */
-.drop-zone{height:24px;border:1.5px dashed transparent;border-radius:6px;margin:2px 4px;transition:all .15s;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent}
-.drop-zone.drag-over{border-color:#1D9E75;background:#e8f5ef;color:#1D9E75}
-
-/* 세부내역/일정 패널 */
 .detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#ccc;font-size:13px;gap:6px;text-align:center}
 .dform{display:flex;flex-direction:column;gap:9px;padding:.8rem .9rem;overflow-y:auto;flex:1;overscroll-behavior:contain;touch-action:pan-y}
 .dform label{font-size:11px;color:#888}
@@ -77,18 +82,6 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 .place-dropdown.open{display:block}
 .place-opt{display:flex;align-items:center;gap:8px;padding:6px 9px;cursor:pointer;font-size:13px;transition:background .1s}
 .place-opt:hover{background:#f4f4f2}.place-opt.selected{background:#f0f0ee;font-weight:500}
-
-/* 날짜별 일정표 */
-.day-schedule-table{width:100%;border-collapse:collapse;font-size:13px}
-.day-schedule-table th{text-align:left;font-size:11px;color:#999;font-weight:500;padding:5px 8px;border-bottom:0.5px solid rgba(0,0,0,.1)}
-.day-schedule-table td{padding:7px 8px;border-bottom:0.5px solid rgba(0,0,0,.05);vertical-align:top}
-.day-schedule-table tr:last-child td{border-bottom:none}
-.day-schedule-table tr:hover td{background:#f7f7f5}
-.dst-time{color:#666;white-space:nowrap;font-size:12px;width:60px}
-.dst-name{font-weight:500}
-.dst-memo{color:#999;font-size:12px;margin-top:2px}
-
-/* 장소목록 */
 .places-tab{display:flex;border-bottom:0.5px solid rgba(0,0,0,.08);flex-shrink:0}
 .places-tab-btn{flex:1;padding:7px 0;font-size:12px;font-family:inherit;border:none;background:none;cursor:pointer;color:#999;border-bottom:2px solid transparent}
 .places-tab-btn.active{color:#1a1a1a;border-bottom:2px solid #1a1a1a;font-weight:500}
@@ -97,17 +90,13 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 .date-label{display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:500;color:#888;margin-bottom:5px;transition:background .1s}
 .date-label:hover{background:#f0f0f0}
 .date-label.active-filter{background:#e8f5ef;color:#1D9E75}
-.place-card{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:7px;cursor:grab;transition:background .1s;border-bottom:0.5px solid rgba(0,0,0,.05)}
-.place-card:active{cursor:grabbing}
+.place-card{display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-radius:7px;cursor:pointer;transition:background .1s;border-bottom:0.5px solid rgba(0,0,0,.05)}
 .place-card:last-child{border-bottom:none}.place-card:hover{background:#f4f4f2}.place-card:hover .pc-actions{opacity:1}
 .pc-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
 .pc-info{flex:1;min-width:0}
 .pc-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc-addr{font-size:11px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity .1s}
-.drag-hint{font-size:10px;color:#ccc;text-align:center;padding:4px 0 8px}
-
-/* 지도 */
 .map-search-bar{display:flex;gap:6px;padding:8px 10px;border-bottom:0.5px solid rgba(0,0,0,.07)}
 .map-search-bar input{flex:1;border:0.5px solid rgba(0,0,0,.2);border-radius:7px;padding:5px 8px;font-size:13px;font-family:inherit}
 .map-info-bar{display:flex;align-items:center;gap:6px;padding:7px 10px;border-top:0.5px solid rgba(0,0,0,.07);background:#fafaf8}
@@ -128,9 +117,9 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
   .page{padding:1rem}
   .cards-grid{grid-template-columns:1fr}
   .user-name{display:none}
-  .trip-body{grid-template-columns:1fr}
-  .trip-row2{grid-template-columns:1fr}
+  .trip-body,.trip-row2,.trip-row3{grid-template-columns:1fr}
   .fixed-panel{height:auto;max-height:480px}
+  .note-panel,.checklist-panel{height:auto;max-height:360px}
   .map-fixed-panel{height:400px}
   .modal{width:calc(100vw - 2rem);max-width:340px}
 }
@@ -197,8 +186,9 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
       <button class="btn" id="btn-go-home">← 목록으로</button>
     </div>
   </div>
+
+  <!-- 1행: 타임라인 | 세부내역 -->
   <div class="trip-body">
-    <!-- 타임라인 -->
     <div class="panel fixed-panel">
       <div class="panel-head">
         <div class="panel-title">타임라인</div>
@@ -206,10 +196,9 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
       </div>
       <div class="panel-body" id="timeline"></div>
     </div>
-    <!-- 일정 -->
     <div class="panel fixed-panel">
-      <div class="panel-head"><div class="panel-title" id="detail-panel-title">일정</div></div>
-      <div class="detail-empty" id="d-empty"><span style="font-size:18px">←</span><span>일정을 선택하거나<br>날짜 헤더를 눌러보세요</span></div>
+      <div class="panel-head"><div class="panel-title">세부 내역</div></div>
+      <div class="detail-empty" id="d-empty"><span style="font-size:18px">←</span><span>일정을 선택하거나 새로 추가하세요</span></div>
       <div class="dform" id="d-form" style="display:none">
         <div><label>일정 이름</label><input id="d-name" type="text" placeholder="예: 아침 식사, 체크인"></div>
         <div class="row">
@@ -224,12 +213,11 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
           <button class="btn btn-xs btn-primary" id="btn-save-event">저장</button>
         </div>
       </div>
-      <!-- 날짜 일정표 -->
-      <div id="d-day-view" style="display:none;flex:1;overflow-y:auto;padding:.8rem .9rem"></div>
     </div>
   </div>
+
+  <!-- 2행: 장소목록 | 지도 -->
   <div class="trip-row2">
-    <!-- 장소 목록 -->
     <div class="panel fixed-panel">
       <div class="panel-head">
         <div class="panel-title">장소 목록</div>
@@ -241,7 +229,6 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
       </div>
       <div class="places-scroll" id="places-list"></div>
     </div>
-    <!-- 지도 -->
     <div class="panel map-fixed-panel" style="overflow:hidden">
       <div class="map-search-bar">
         <input id="map-search-input" type="text" placeholder="장소 검색...">
@@ -254,6 +241,33 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
       </div>
       <div class="map-add-bar">
         <button class="btn btn-sm" id="btn-map-place-add" style="width:100%">+ 현재 장소를 목록에 추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3행: 노트 | 체크리스트 -->
+  <div class="trip-row3">
+    <!-- 노트 -->
+    <div class="panel note-panel">
+      <div class="panel-head">
+        <div class="panel-title">노트</div>
+        <button class="btn btn-sm" id="btn-save-note">저장</button>
+      </div>
+      <div class="note-body">
+        <textarea class="note-textarea" id="note-textarea" placeholder="메모, 팁, 참고사항 등 자유롭게 적어보세요..."></textarea>
+        <div class="note-footer" id="note-footer"></div>
+      </div>
+    </div>
+    <!-- 체크리스트 -->
+    <div class="panel checklist-panel">
+      <div class="panel-head">
+        <div class="panel-title">체크리스트</div>
+        <button class="btn btn-sm" id="btn-clear-done">완료 항목 삭제</button>
+      </div>
+      <div class="checklist-body" id="checklist-body"></div>
+      <div class="chk-add-row">
+        <input class="chk-add-input" id="chk-input" type="text" placeholder="항목 추가...">
+        <button class="btn btn-sm btn-primary" id="btn-chk-add">추가</button>
       </div>
     </div>
   </div>
@@ -376,8 +390,7 @@ const GMAP_KEY="AIzaSyBTsqjIbUgcwN-Z4zoQzxoVJeItmw16Zi0";
 
 let trips=[],curUser=null,cur=null,selEvIdx=null,editingPlaceId=null,editingEvIdx=null,editingTripId=null;
 let activeAddr="",activeMarker=null,allMarkers=[],gmap=null,geocoder=null,placesService=null,pendingPlace=null;
-let placeDropdownOpen=false,placesTab="cat",selectedDateFilter=null,selectedDayHeader=null;
-let detailMode="empty"; // "empty" | "event" | "day"
+let placeDropdownOpen=false,placesTab="cat",selectedDateFilter=null;
 
 const uidGen=()=>Date.now()+Math.random();
 const fmtDate=d=>{if(!d)return"";const[y,m,day]=d.split("-");return`${y}년 ${m}월 ${day}일`;};
@@ -400,6 +413,7 @@ const setSaving=v=>{
   document.getElementById("saving-badge2").style.display=v?"":"none";
 };
 
+/* ── Firestore ── */
 async function saveToFirestore(){
   if(!curUser)return;setSaving(true);
   try{await db.doc(`users/${curUser.uid}/data/trips`).set({trips});setStatus("✅ 저장 완료");}
@@ -408,15 +422,20 @@ async function saveToFirestore(){
 }
 async function loadFromFirestore(){
   setStatus("Firestore 데이터 로딩 중...");
-  try{const snap=await db.doc(`users/${curUser.uid}/data/trips`).get();
+  try{
+    const snap=await db.doc(`users/${curUser.uid}/data/trips`).get();
     if(snap.exists){
       trips=snap.data().trips||[];
+      // 이동 → 교통 마이그레이션 (한 번만)
+      let migrated=false;
+      trips.forEach(t=>(t.places||[]).forEach(p=>{if(p.cat==="이동"){p.cat="교통";migrated=true;}}));
+      if(migrated)await db.doc(`users/${curUser.uid}/data/trips`).set({trips});
       setStatus("✅ 로드 완료",`여행 ${trips.length}개`);
-    }
-    else setStatus("저장된 데이터 없음");}
-  catch(e){setStatus("❌ Firestore 로드 실패",e.message);}
+    }else setStatus("저장된 데이터 없음");
+  }catch(e){setStatus("❌ Firestore 로드 실패",e.message);}
 }
 
+/* ── Auth ── */
 auth.onAuthStateChanged(async user=>{
   clearTimeout(authTimer);setStatus("인증 상태 확인됨");
   if(user){
@@ -513,6 +532,60 @@ function renderAllPins(){
   });
 }
 
+/* ── 노트 ── */
+function loadNote(){
+  const ta=document.getElementById("note-textarea");
+  ta.value=cur.note||"";
+  updateNoteFooter();
+}
+function updateNoteFooter(){
+  const ta=document.getElementById("note-textarea");
+  const len=ta.value.length;
+  document.getElementById("note-footer").textContent=len>0?`${len}자`:"";
+}
+function saveNote(){
+  cur.note=document.getElementById("note-textarea").value;
+  saveToFirestore();
+}
+
+/* ── 체크리스트 ── */
+function renderChecklist(){
+  const body=document.getElementById("checklist-body");body.innerHTML="";
+  const items=cur.checklist||[];
+  if(!items.length){
+    body.innerHTML="<div style='color:#ccc;font-size:12px;text-align:center;padding:1.5rem 0'>아래에서 항목을 추가해보세요</div>";
+    return;
+  }
+  // 미완료 먼저, 완료 나중
+  const sorted=[...items.filter(x=>!x.done),...items.filter(x=>x.done)];
+  sorted.forEach(item=>{
+    const row=document.createElement("div");row.className="chk-item";
+    const cb=document.createElement("input");cb.type="checkbox";cb.className="chk-cb";cb.checked=item.done;
+    const lbl=document.createElement("span");lbl.className="chk-label"+(item.done?" done":"");lbl.textContent=item.text;
+    const del=document.createElement("span");del.className="chk-del";del.textContent="✕";
+    cb.addEventListener("change",()=>{
+      const orig=cur.checklist.find(x=>x.id===item.id);
+      if(orig){orig.done=cb.checked;saveToFirestore();renderChecklist();}
+    });
+    lbl.addEventListener("click",()=>{cb.checked=!cb.checked;cb.dispatchEvent(new Event("change"));});
+    del.addEventListener("click",()=>{cur.checklist=cur.checklist.filter(x=>x.id!==item.id);saveToFirestore();renderChecklist();});
+    row.appendChild(cb);row.appendChild(lbl);row.appendChild(del);
+    body.appendChild(row);
+  });
+}
+function addChecklistItem(){
+  const input=document.getElementById("chk-input");
+  const text=input.value.trim();if(!text)return;
+  if(!cur.checklist)cur.checklist=[];
+  cur.checklist.push({id:uidGen(),text,done:false});
+  saveToFirestore();renderChecklist();
+  input.value="";input.focus();
+}
+function clearDoneItems(){
+  cur.checklist=(cur.checklist||[]).filter(x=>!x.done);
+  saveToFirestore();renderChecklist();
+}
+
 /* ── 홈 카드 ── */
 function renderCards(){
   const g=document.getElementById("cards-grid");g.innerHTML="";
@@ -532,7 +605,9 @@ function renderCards(){
 
 function openTrip(id){
   cur=trips.find(t=>t.id===id);selEvIdx=null;activeAddr="";allMarkers=[];
-  editingPlaceId=null;editingEvIdx=null;pendingPlace=null;placesTab="cat";selectedDateFilter=null;selectedDayHeader=null;detailMode="empty";
+  editingPlaceId=null;editingEvIdx=null;pendingPlace=null;placesTab="cat";selectedDateFilter=null;
+  if(!cur.checklist)cur.checklist=[];
+  if(!cur.note)cur.note="";
   document.getElementById("tp-dest").textContent=cur.emoji+" "+cur.dest;
   const s=cur.start?fmtDate(cur.start):"",e=cur.end?fmtDate(cur.end):"";
   document.getElementById("tp-period").textContent=s&&e?s+" – "+e:s||e||"날짜 미정";
@@ -541,7 +616,7 @@ function openTrip(id){
   document.getElementById("gmaps-open-btn").style.display="none";
   document.getElementById("tab-cat").classList.add("active");
   document.getElementById("tab-date").classList.remove("active");
-  showDetailEmpty();renderTimeline();renderPlaces();showPage("trip-page");
+  showDetail(null);renderTimeline();renderPlaces();loadNote();renderChecklist();showPage("trip-page");
   setTimeout(()=>{
     if(!gmap){const sc=document.createElement("script");sc.src=`https://maps.googleapis.com/maps/api/js?key=${GMAP_KEY}&libraries=places&callback=initGoogleMap`;sc.async=true;document.head.appendChild(sc);}
     else renderAllPins();
@@ -592,18 +667,8 @@ function deletePlace(pid){
   cur.events.forEach(ev=>{if(ev.placeId===pid)ev.placeId=null;});
   saveToFirestore();renderPlaces();renderTimeline();renderPlaceSelect();if(gmap)renderAllPins();
 }
-
-/* ── 장소 카드 (드래그 포함) ── */
 function makePlaceCard(pl){
   const card=document.createElement("div");card.className="place-card";
-  card.draggable=true;
-  card.dataset.placeId=pl.id;
-  card.addEventListener("dragstart",e=>{
-    e.dataTransfer.setData("placeId",String(pl.id));
-    e.dataTransfer.effectAllowed="copy";
-    card.style.opacity=".5";
-  });
-  card.addEventListener("dragend",()=>{card.style.opacity="";});
   card.addEventListener("click",()=>focusMapOnPlace(pl));
   const color=CAT_COLOR[pl.cat]||"#888",bg=CAT_BG[pl.cat]||"#f2f2f2";
   card.innerHTML=`<div class="pc-icon" style="background:${bg};color:${color}">${CAT_ICON[pl.cat]||"📌"}</div><div class="pc-info"><div class="pc-name">${pl.name}</div><div class="pc-addr">${pl.addr||pl.memo||"—"}</div></div><div class="pc-actions"><button class="btn btn-xs">편집</button><button class="btn btn-xs btn-danger">삭제</button></div>`;
@@ -611,11 +676,9 @@ function makePlaceCard(pl){
   card.querySelectorAll(".btn-xs")[1].addEventListener("click",e2=>{e2.stopPropagation();deletePlace(pl.id);});
   return card;
 }
-
 function renderPlaces(){
   const container=document.getElementById("places-list");container.innerHTML="";
   if(!cur.places.length){container.innerHTML="<div style='color:#ccc;font-size:12px;text-align:center;padding:1.2rem 0'>장소를 추가해보세요</div>";return;}
-  const hint=document.createElement("div");hint.className="drag-hint";hint.textContent="☰ 드래그해서 타임라인에 일정 추가";container.appendChild(hint);
   if(placesTab==="cat"){
     const usedCats=[...new Set(cur.places.map(p=>p.cat))];
     const sorted=CAT_ORDER.filter(c=>usedCats.includes(c));
@@ -656,11 +719,11 @@ function renderPlaces(){
 }
 
 /* ── 이벤트 모달 ── */
-function openEventModal(evIdx,defaultDate){
+function openEventModal(evIdx){
   editingEvIdx=evIdx;const ev=evIdx!==null?cur.events[evIdx]:null;
   document.getElementById("em-title").textContent=ev?"일정 편집":"일정 추가";
   document.getElementById("em-name").value=ev?ev.name:"";
-  document.getElementById("em-date").value=ev?ev.date:(defaultDate||"");
+  document.getElementById("em-date").value=ev?ev.date:"";
   document.getElementById("em-time").value=ev?ev.time:"";
   document.getElementById("em-memo").value=ev?ev.memo:"";
   document.getElementById("em-link").value=ev?ev.link:"";
@@ -676,31 +739,7 @@ function saveEventModal(){
     placeId:plVal?Number(plVal):null,memo:document.getElementById("em-memo").value.trim(),link:document.getElementById("em-link").value.trim()};
   if(editingEvIdx!==null)Object.assign(cur.events[editingEvIdx],data);
   else cur.events.push({id:uidGen(),...data});
-  saveToFirestore();renderTimeline();
-  if(selectedDayHeader)showDayView(selectedDayHeader);
-  document.getElementById("event-modal").classList.remove("open");
-}
-
-/* ── 드롭으로 일정 추가 ── */
-function addEventFromDrop(placeId, dateKey, time=""){
-  const pl=cur.places.find(p=>p.id===placeId);if(!pl)return;
-  cur.events.push({id:uidGen(),name:pl.name,date:dateKey==="미정"?"":dateKey,time,placeId:pl.id,memo:"",link:""});
-  saveToFirestore();renderTimeline();
-  if(selectedDayHeader)showDayView(selectedDayHeader);
-  if(gmap)focusMapOnPlace(pl);
-}
-
-/* ── 드롭존 생성 ── */
-function makeDropZone(dateKey){
-  const dz=document.createElement("div");dz.className="drop-zone";dz.textContent="여기에 추가";
-  dz.addEventListener("dragover",e=>{e.preventDefault();dz.classList.add("drag-over");});
-  dz.addEventListener("dragleave",()=>dz.classList.remove("drag-over"));
-  dz.addEventListener("drop",e=>{
-    e.preventDefault();dz.classList.remove("drag-over");
-    const pid=parseFloat(e.dataTransfer.getData("placeId"));
-    if(pid) addEventFromDrop(pid, dateKey, calcDropTime(dateKey, beforeIdx));
-  });
-  return dz;
+  saveToFirestore();renderTimeline();document.getElementById("event-modal").classList.remove("open");
 }
 
 /* ── 타임라인 ── */
@@ -710,125 +749,26 @@ function renderTimeline(){
   (cur.events||[]).forEach((ev,i)=>{const k=ev.date||"미정";if(!byDay[k])byDay[k]=[];byDay[k].push({ev,i});});
   const allDays=[...new Set([...days,...Object.keys(byDay).filter(d=>!days.includes(d)&&d!=="미정")])];
   if(byDay["미정"])allDays.push("미정");
-  if(!allDays.length){
-    tl.innerHTML="<div style='color:#ccc;font-size:12px;text-align:center;padding:1rem 0'>상단 + 버튼으로 일정을 추가해보세요</div>";
-    tl.appendChild(makeDropZone("미정"));return;
-  }
+  if(!allDays.length){tl.innerHTML="<div style='color:#ccc;font-size:12px;text-align:center;padding:1rem 0'>상단 + 버튼으로 일정을 추가해보세요</div>";return;}
   allDays.forEach(day=>{
     const items=byDay[day]||[];
-    const g=document.createElement("div");g.className="day-group";
-
-    // 날짜 헤더 (클릭 가능)
-    const isActiveDay=selectedDayHeader===day;
-    const dayNum=days.indexOf(day);
-    const header=document.createElement("div");header.className="day-header"+(isActiveDay?" active-day":"");
-    header.innerHTML=`<span class="day-header-label">${day==="미정"?"날짜 미정":fmtDate(day)}</span><span class="day-header-hint">${items.length>0?"일정 "+items.length+"개 · 탭하면 표로":"탭하면 지도 표시"}</span>`;
-    header.addEventListener("click",()=>{
-      if(isActiveDay){selectedDayHeader=null;showDetailEmpty();}
-      else{selectedDayHeader=day;showDayView(day);if(gmap)focusMapOnDate(day);}
-      renderTimeline();
-    });
-    g.appendChild(header);
-
-    // 드롭존 (맨 위)
-    g.appendChild(makeDropZone(day));
-
+    const g=document.createElement("div");g.style.marginBottom="8px";
+    const lbl=document.createElement("div");lbl.className="day-lbl";
+    lbl.textContent=day==="미정"?"날짜 미정":fmtDate(day);g.appendChild(lbl);
     items.sort((a,b)=>(a.ev.time||"").localeCompare(b.ev.time||""));
-    items.forEach(({ev,i}, idx)=>{
+    items.forEach(({ev,i})=>{
       const pl=ev.placeId?cur.places.find(p=>p.id===ev.placeId):null;
       const row=document.createElement("div");row.className="tl-item"+(selEvIdx===i?" sel":"");
-      row.addEventListener("click",()=>{selEvIdx=i;selectedDayHeader=null;renderTimeline();showEventDetail(i);if(pl)focusMapOnPlace(pl);});
+      row.addEventListener("click",()=>{selEvIdx=i;renderTimeline();showDetail(i);if(pl)focusMapOnPlace(pl);});
       row.innerHTML=`<div class="time-dot${pl?" has-place":""}"></div><div class="tl-txt"><div class="tl-name">${ev.name||"(이름 없음)"}</div><div class="tl-ref">${ev.time?ev.time+" · ":""}${pl?`${CAT_ICON[pl.cat]||""} ${pl.name}`:"장소 미지정"}</div></div><button class="btn btn-xs" style="opacity:.4;flex-shrink:0">편집</button>`;
       row.querySelector(".btn-xs").addEventListener("click",e2=>{e2.stopPropagation();openEventModal(i);});
       g.appendChild(row);
-      // 각 항목 사이 드롭존
-      g.appendChild(makeDropZone(day));
     });
     tl.appendChild(g);
   });
 }
 
-/* ── 일정 패널 표시 모드 ── */
-function showDetailEmpty(){
-  detailMode="empty";selEvIdx=null;selectedDayHeader=null;
-  document.getElementById("d-empty").style.display="flex";
-  document.getElementById("d-form").style.display="none";
-  document.getElementById("d-day-view").style.display="none";
-  document.getElementById("detail-panel-title").textContent="일정";
-}
-
-function showEventDetail(idx){
-  detailMode="event";selectedDayHeader=null;
-  const ev=cur.events[idx];
-  document.getElementById("d-empty").style.display="none";
-  document.getElementById("d-form").style.display="flex";
-  document.getElementById("d-day-view").style.display="none";
-  document.getElementById("detail-panel-title").textContent="일정";
-  document.getElementById("d-name").value=ev.name||"";
-  document.getElementById("d-date").value=ev.date||"";
-  document.getElementById("d-time").value=ev.time||"";
-  document.getElementById("d-memo").value=ev.memo||"";
-  document.getElementById("d-link").value=ev.link||"";
-  renderPlaceSelect();
-}
-
-function showDayView(dateKey){
-  detailMode="day";selEvIdx=null;
-  document.getElementById("d-empty").style.display="none";
-  document.getElementById("d-form").style.display="none";
-  const dayView=document.getElementById("d-day-view");dayView.style.display="block";
-  const days=getDays();const dayNum=days.indexOf(dateKey);
-  const label=dateKey==="미정"?"날짜 미정":"Day "+(dayNum+1)+"  ·  "+fmtDate(dateKey);
-  document.getElementById("detail-panel-title").textContent=label;
-
-  const items=(cur.events||[])
-    .map((ev,i)=>({ev,i}))
-    .filter(({ev})=>(ev.date||"미정")===dateKey)
-    .sort((a,b)=>(a.ev.time||"").localeCompare(b.ev.time||""));
-
-  dayView.innerHTML="";
-
-  // 테이블 헤더
-  const table=document.createElement("table");table.className="day-schedule-table";
-  table.innerHTML=`<thead><tr><th>시간</th><th>일정</th><th>메모</th></tr></thead>`;
-  const tbody=document.createElement("tbody");
-
-  // 맨 위 드롭존
-  const topDropRow=document.createElement("tr");
-        const topDropTd=document.createElement("td");topDropTd.colSpan=3;topDropTd.style.padding="0";
-  topDropTd.appendChild(makeDropZone(dateKey));
-  topDropRow.appendChild(topDropTd);tbody.appendChild(topDropRow);
-
-  if(!items.length){
-    const emptyRow=document.createElement("tr");
-    emptyRow.innerHTML=`<td colspan="3" style="text-align:center;color:#ccc;font-size:12px;padding:1.5rem 0">장소 목록에서 드래그해서 추가해보세요</td>`;
-    tbody.appendChild(emptyRow);
-  } else {
-    items.forEach(({ev,i})=>{
-      const pl=ev.placeId?cur.places.find(p=>p.id===ev.placeId):null;
-      const row=document.createElement("tr");row.style.cursor="pointer";
-      row.innerHTML=`<td class="dst-time">${ev.time||"—"}</td>
-        <td><div class="dst-name">${ev.name||"(이름 없음)"}</div>${pl?`<div style="font-size:11px;color:#999;margin-top:2px">${CAT_ICON[pl.cat]||""} ${pl.name}</div>`:""}</td>
-        <td><div class="dst-memo">${ev.memo||""}</div></td>`;
-      row.addEventListener("click",()=>{selEvIdx=i;selectedDayHeader=null;renderTimeline();showEventDetail(i);if(pl)focusMapOnPlace(pl);});
-      tbody.appendChild(row);
-      // 각 행 사이 드롭존
-      const dzRow=document.createElement("tr");
-      const dzTd=document.createElement("td");dzTd.colSpan=3;dzTd.style.padding="0";
-      dzTd.appendChild(makeDropZone(dateKey, idx+1));
-      dzRow.appendChild(dzTd);tbody.appendChild(dzRow);
-    });
-  }
-  table.appendChild(tbody);dayView.appendChild(table);
-
-  const addBtn=document.createElement("button");
-  addBtn.className="btn btn-sm";addBtn.style.cssText="margin-top:12px;width:100%";
-  addBtn.textContent="+ 이 날 일정 추가";
-  addBtn.addEventListener("click",()=>openEventModal(null,dateKey==="미정"?"":dateKey));
-  dayView.appendChild(addBtn);
-}
-
-/* ── 세부내역 내 참조 장소 ── */
+/* ── 세부내역 ── */
 function renderPlaceSelect(){
   const box=document.getElementById("place-ref-box");if(!box)return;
   const ev=selEvIdx!==null?cur.events[selEvIdx]:null;
@@ -852,6 +792,17 @@ function renderPlaceSelect(){
     });
   });
 }
+function showDetail(idx){
+  const empty=document.getElementById("d-empty"),form=document.getElementById("d-form");
+  if(idx===null||idx===undefined){empty.style.display="flex";form.style.display="none";return;}
+  const ev=cur.events[idx];empty.style.display="none";form.style.display="flex";
+  document.getElementById("d-name").value=ev.name||"";
+  document.getElementById("d-date").value=ev.date||"";
+  document.getElementById("d-time").value=ev.time||"";
+  document.getElementById("d-memo").value=ev.memo||"";
+  document.getElementById("d-link").value=ev.link||"";
+  renderPlaceSelect();
+}
 function saveEvent(){
   if(selEvIdx===null)return;
   const ev=cur.events[selEvIdx];
@@ -861,7 +812,7 @@ function saveEvent(){
 }
 function deleteEvent(){
   if(selEvIdx===null)return;cur.events.splice(selEvIdx,1);selEvIdx=null;
-  saveToFirestore();renderTimeline();showDetailEmpty();
+  saveToFirestore();renderTimeline();showDetail(null);
 }
 
 /* ── 이벤트 연결 ── */
@@ -879,7 +830,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("btn-close-trip-modal").addEventListener("click",()=>document.getElementById("trip-modal").classList.remove("open"));
   document.getElementById("btn-add-trip").addEventListener("click",()=>{
     const dest=document.getElementById("tm-dest").value.trim();if(!dest)return;
-    trips.push({id:uidGen(),dest,start:document.getElementById("tm-start").value,end:document.getElementById("tm-end").value,emoji:document.getElementById("tm-emoji").value,events:[],places:[]});
+    trips.push({id:uidGen(),dest,start:document.getElementById("tm-start").value,end:document.getElementById("tm-end").value,emoji:document.getElementById("tm-emoji").value,events:[],places:[],note:"",checklist:[]});
     saveToFirestore();renderCards();document.getElementById("trip-modal").classList.remove("open");document.getElementById("tm-dest").value="";
   });
   document.getElementById("btn-close-trip-edit-modal").addEventListener("click",()=>document.getElementById("trip-edit-modal").classList.remove("open"));
@@ -915,6 +866,13 @@ document.addEventListener("DOMContentLoaded",()=>{
       document.getElementById("pm-lng").value=pendingPlace.lng||"";document.getElementById("pm-cat").value="관광지";
     }
   });
+  // 노트
+  document.getElementById("note-textarea").addEventListener("input",updateNoteFooter);
+  document.getElementById("btn-save-note").addEventListener("click",saveNote);
+  // 체크리스트
+  document.getElementById("btn-chk-add").addEventListener("click",addChecklistItem);
+  document.getElementById("chk-input").addEventListener("keydown",e=>{if(e.key==="Enter")addChecklistItem();});
+  document.getElementById("btn-clear-done").addEventListener("click",clearDoneItems);
 });
 </script>
 </body>
