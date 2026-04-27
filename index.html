@@ -274,9 +274,10 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 </div>
 
 <!-- Firebase SDK (compat 버전 - 모든 환경에서 안정적) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" onload="console.log('firebase-app 로드됨')" onerror="document.getElementById('loading-msg').textContent='Firebase 앱 SDK 로드 실패!'"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" onload="console.log('firebase-auth 로드됨')" onerror="document.getElementById('loading-msg').textContent='Firebase Auth SDK 로드 실패!'"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" onload="console.log('firebase-firestore 로드됨')" onerror="document.getElementById('loading-msg').textContent='Firebase Firestore SDK 로드 실패!'"></script>
+<script>document.getElementById('loading-msg').textContent='Firebase SDK 로드 중...';</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" onload="document.getElementById('loading-msg').textContent='Auth 로드 중...'" onerror="document.getElementById('loading-msg').textContent='❌ Firebase 앱 SDK 로드 실패! 인터넷 연결 확인'"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" onload="document.getElementById('loading-msg').textContent='Firestore 로드 중...'" onerror="document.getElementById('loading-msg').textContent='❌ Firebase Auth SDK 로드 실패!'"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" onload="document.getElementById('loading-msg').textContent='Firebase 초기화 중...'" onerror="document.getElementById('loading-msg').textContent='❌ Firestore SDK 로드 실패!'"></script>
 <script>
 firebase.initializeApp({
   apiKey: "AIzaSyCyVuM9f51D4LprXU81RHTrxGOAIo6e0ZE",
