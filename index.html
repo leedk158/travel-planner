@@ -79,28 +79,37 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 .map-info-name.on{color:#1a1a1a}
 .places-scroll{flex:1;overflow-y:auto;padding:.8rem .9rem}
 .map-add-bar{padding:8px 10px;border-top:0.5px solid rgba(0,0,0,.07);background:#f7f7f5}
-/* 로그인 화면 */
-.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f7f7f5}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh}
 .login-box{background:#fff;border-radius:16px;padding:2.5rem;width:320px;text-align:center;border:0.5px solid rgba(0,0,0,.1);box-shadow:0 4px 24px rgba(0,0,0,.08)}
-.login-emoji{font-size:48px;margin-bottom:12px}
-.login-title{font-size:20px;font-weight:500;margin-bottom:6px}
-.login-sub{font-size:13px;color:#999;margin-bottom:28px;line-height:1.6}
 .btn-google{width:100%;padding:10px 0;font-size:14px;background:#1a1a1a;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-google:hover{background:#333}
-.saving-badge{font-size:11px;color:#aaa;margin-right:4px}
+.saving-badge{font-size:11px;color:#aaa}
 .user-info{display:flex;align-items:center;gap:8px}
 .user-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover}
 .user-name{font-size:12px;color:#666}
+#status-bar{position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;color:#fff;font-size:12px;padding:6px 14px;z-index:999;display:none}
 </style>
 </head>
 <body>
 
-<!-- 로그인 화면 -->
+<!-- 상태바 (디버깅용) -->
+<div id="status-bar"></div>
+
+<!-- 로딩 -->
+<div id="loading-page" class="login-wrap">
+  <div style="text-align:center;color:#999">
+    <div style="font-size:32px;margin-bottom:12px">✈️</div>
+    <div id="loading-msg" style="font-size:14px">시작 중...</div>
+    <div id="loading-detail" style="font-size:11px;color:#bbb;margin-top:6px"></div>
+  </div>
+</div>
+
+<!-- 로그인 -->
 <div id="login-page" class="login-wrap" style="display:none">
   <div class="login-box">
-    <div class="login-emoji">✈️</div>
-    <div class="login-title">내 여행 플래너</div>
-    <div class="login-sub">Google 계정으로 로그인하면<br>어디서든 여행 데이터를 불러올 수 있어요</div>
+    <div style="font-size:48px;margin-bottom:12px">✈️</div>
+    <div style="font-size:20px;font-weight:500;margin-bottom:6px">내 여행 플래너</div>
+    <div style="font-size:13px;color:#999;margin-bottom:28px;line-height:1.6">Google 계정으로 로그인하면<br>어디서든 여행 데이터를 불러올 수 있어요</div>
     <button class="btn-google" id="btn-google-login">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <path d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2C16.66 14.08 17.64 11.77 17.64 9.2z" fill="#fff"/>
@@ -110,15 +119,7 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
       </svg>
       Google로 로그인
     </button>
-  </div>
-</div>
-
-<!-- 로딩 화면 -->
-<div id="loading-page" class="login-wrap">
-  <div style="text-align:center;color:#999">
-    <div style="font-size:32px;margin-bottom:12px">✈️</div>
-    <div id="loading-msg" style="font-size:14px">Firebase 초기화 중...</div>
-    <div id="loading-detail" style="font-size:11px;color:#bbb;margin-top:8px"></div>
+    <div id="login-error" style="margin-top:12px;font-size:12px;color:#c00;display:none"></div>
   </div>
 </div>
 
@@ -170,10 +171,7 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
           <div><label>날짜</label><input id="d-date" type="date"></div>
           <div><label>시간</label><input id="d-time" type="time"></div>
         </div>
-        <div>
-          <label>참조 장소</label>
-          <div class="place-ref-box" id="place-ref-box"></div>
-        </div>
+        <div><label>참조 장소</label><div class="place-ref-box" id="place-ref-box"></div></div>
         <div><label>메모</label><textarea id="d-memo" placeholder="예약 번호, 이동 방법, 준비물 등"></textarea></div>
         <div><label>링크</label><input id="d-link" type="url" placeholder="https://..."></div>
         <div class="dact">
@@ -273,28 +271,56 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
   </div>
 </div>
 
-<!-- Firebase SDK (compat 버전 - 모든 환경에서 안정적) -->
-<script>document.getElementById('loading-msg').textContent='Firebase SDK 로드 중...';</script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" onload="document.getElementById('loading-msg').textContent='Auth 로드 중...'" onerror="document.getElementById('loading-msg').textContent='❌ Firebase 앱 SDK 로드 실패! 인터넷 연결 확인'"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" onload="document.getElementById('loading-msg').textContent='Firestore 로드 중...'" onerror="document.getElementById('loading-msg').textContent='❌ Firebase Auth SDK 로드 실패!'"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" onload="document.getElementById('loading-msg').textContent='Firebase 초기화 중...'" onerror="document.getElementById('loading-msg').textContent='❌ Firestore SDK 로드 실패!'"></script>
+<!-- 1) 먼저 상태 표시 함수 정의 -->
 <script>
-firebase.initializeApp({
-  apiKey: "AIzaSyCyVuM9f51D4LprXU81RHTrxGOAIo6e0ZE",
-  authDomain: "project-ac9e9d10-8406-4a21-b27.firebaseapp.com",
-  projectId: "project-ac9e9d10-8406-4a21-b27",
-  storageBucket: "project-ac9e9d10-8406-4a21-b27.firebasestorage.app",
-  messagingSenderId: "404436697876",
-  appId: "1:404436697876:web:8cb054ee33d4ff45d67801"
-});
-const auth = firebase.auth();
-const db   = firebase.firestore();
+function setStatus(msg, detail) {
+  const m = document.getElementById("loading-msg");
+  const d = document.getElementById("loading-detail");
+  const b = document.getElementById("status-bar");
+  if(m) m.textContent = msg;
+  if(d) d.textContent = detail || "";
+  if(b) { b.textContent = msg + (detail ? " — " + detail : ""); b.style.display = "block"; }
+  console.log("[status]", msg, detail || "");
+}
+setStatus("Firebase SDK 로드 중...");
+</script>
+
+<!-- 2) Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
+  onload="setStatus('Auth SDK 로드 중...')"
+  onerror="setStatus('❌ Firebase App SDK 로드 실패', '인터넷 연결 확인')"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"
+  onload="setStatus('Firestore SDK 로드 중...')"
+  onerror="setStatus('❌ Firebase Auth SDK 로드 실패')"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"
+  onload="setStatus('Firebase 초기화 중...')"
+  onerror="setStatus('❌ Firestore SDK 로드 실패')"></script>
+
+<!-- 3) 앱 코드 -->
+<script>
+/* ── Firebase 초기화 ── */
+try {
+  firebase.initializeApp({
+    apiKey: "AIzaSyCyVuM9f51D4LprXU81RHTrxGOAIo6e0ZE",
+    authDomain: "project-ac9e9d10-8406-4a21-b27.firebaseapp.com",
+    projectId: "project-ac9e9d10-8406-4a21-b27",
+    storageBucket: "project-ac9e9d10-8406-4a21-b27.firebasestorage.app",
+    messagingSenderId: "404436697876",
+    appId: "1:404436697876:web:8cb054ee33d4ff45d67801"
+  });
+  setStatus("Auth 연결 중...");
+} catch(e) {
+  setStatus("❌ Firebase 초기화 실패", e.message);
+}
+
+const auth     = firebase.auth();
+const db       = firebase.firestore();
 const provider = new firebase.auth.GoogleAuthProvider();
 
-// 5초 안에 onAuthStateChanged 응답 없으면 오류 표시
-const authTimeout = setTimeout(() => {
-  setLoadingMsg("❌ Firebase Auth 응답 없음", "authDomain 설정 또는 네트워크 문제일 수 있어요");
-}, 5000);
+/* 10초 타임아웃 */
+const authTimer = setTimeout(() => {
+  setStatus("❌ Auth 응답 없음 (10초 초과)", "네트워크 또는 authDomain 문제");
+}, 10000);
 
 /* ── 상수 ── */
 const CAT_ICON  = {숙소:"🏨",맛집:"🍜",디저트:"🍰",관광지:"🗺️",카페:"☕",쇼핑:"🛍️",이동:"🚆",기타:"📌"};
@@ -303,19 +329,11 @@ const CAT_BG    = {숙소:"#f0effd",맛집:"#fdf0ec",디저트:"#fdf0f5",관광�
 const CAT_ORDER = ["숙소","맛집","디저트","관광지","카페","쇼핑","이동","기타"];
 const GMAP_KEY  = "AIzaSyBTsqjIbUgcwN-Z4zoQzxoVJeItmw16Zi0";
 
-const setLoadingMsg = (msg, detail="") => {
-  const m = document.getElementById("loading-msg");
-  const d = document.getElementById("loading-detail");
-  if(m) m.textContent = msg;
-  if(d) d.textContent = detail;
-  console.log(msg, detail);
-};
 let trips=[], curUser=null, cur=null, selEvIdx=null, editingPlaceId=null, editingEvIdx=null;
 let activeAddr="", activeMarker=null, allMarkers=[], gmap=null, geocoder=null, placesService=null, pendingPlace=null;
 let placeDropdownOpen=false, placesTab="cat";
 
-/* ── 유틸 ── */
-const uid   = () => Date.now() + Math.random();
+const uidGen  = () => Date.now() + Math.random();
 const fmtDate = d => { if(!d)return""; const[y,m,day]=d.split("-"); return `${y}년 ${m}월 ${day}일`; };
 const getDays = () => {
   if(!cur?.start||!cur?.end) return [];
@@ -324,59 +342,39 @@ const getDays = () => {
   return days;
 };
 const showPage = id => {
-  document.getElementById("loading-page").style.display = "none";
-  document.getElementById("login-page").style.display = "none";
+  document.getElementById("loading-page").style.display="none";
+  document.getElementById("login-page").style.display="none";
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.getElementById(id)?.classList.add("active");
+  if(id) document.getElementById(id)?.classList.add("active");
 };
 const setSaving = v => {
   document.getElementById("saving-badge").style.display  = v?"":"none";
   document.getElementById("saving-badge2").style.display = v?"":"none";
 };
 
-/* ── Firestore 저장/불러오기 ── */
+/* ── Firestore ── */
 async function saveToFirestore() {
   if(!curUser) return;
   setSaving(true);
-  try { await db.doc(`users/${curUser.uid}/data/trips`).set({trips}); } catch(e){ console.error(e); }
+  try {
+    await db.doc(`users/${curUser.uid}/data/trips`).set({trips});
+    setStatus("✅ 저장 완료");
+  } catch(e) { setStatus("❌ 저장 실패", e.message); }
   setSaving(false);
 }
 async function loadFromFirestore() {
-  if(!curUser) return;
-  setLoadingMsg("Firestore에서 데이터 불러오는 중...");
+  setStatus("Firestore에서 데이터 로딩 중...");
   try {
     const snap = await db.doc(`users/${curUser.uid}/data/trips`).get();
-    if(snap.exists) {
-      trips = snap.data().trips || [];
-      setLoadingMsg("데이터 불러오기 완료", `여행 ${trips.length}개`);
-    } else {
-      setLoadingMsg("저장된 데이터 없음 (새로 시작)");
-    }
-  } catch(e){
-    setLoadingMsg("Firestore 오류!", e.message);
-    console.error(e);
-  }
+    if(snap.exists) { trips = snap.data().trips||[]; setStatus("✅ 데이터 로드 완료", `여행 ${trips.length}개`); }
+    else setStatus("저장된 데이터 없음 (새로 시작)");
+  } catch(e) { setStatus("❌ Firestore 로드 실패", e.message); }
 }
 
-/* ── Auth 상태 감지 ── */
-  auth.onAuthStateChanged(async user => {
-    clearTimeout(authTimeout);
-    setLoadingMsg("인증 상태 확인 중...");
-    if(user) {
-      curUser = user;
-      setLoadingMsg("로그인 확인됨, 데이터 불러오는 중...", user.email);
-      document.getElementById("user-avatar").src = user.photoURL||"";
-      document.getElementById("user-name").textContent = user.displayName||"";
-      await loadFromFirestore();
-      renderCards();
-      showPage("home");
-    } else {
-      curUser = null; trips = [];
-      setLoadingMsg("로그인 필요");
-      document.getElementById("loading-page").style.display = "none";
-      document.getElementById("login-page").style.display = "flex";
-    }
-  });
+/* ── Auth ── */
+auth.onAuthStateChanged(async user => {
+  clearTimeout(authTimer);
+  setStatus("인증 상태 확인됨");
   if(user) {
     curUser = user;
     document.getElementById("user-avatar").src = user.photoURL||"";
@@ -384,14 +382,15 @@ async function loadFromFirestore() {
     await loadFromFirestore();
     renderCards();
     showPage("home");
+    setTimeout(()=>document.getElementById("status-bar").style.display="none", 3000);
   } else {
-    curUser = null; trips = [];
-    document.getElementById("loading-page").style.display = "none";
-    document.getElementById("login-page").style.display = "flex";
+    curUser=null; trips=[];
+    document.getElementById("loading-page").style.display="none";
+    document.getElementById("login-page").style.display="flex";
   }
 });
 
-/* ── Google Maps 초기화 ── */
+/* ── Google Maps ── */
 window.initGoogleMap = function() {
   gmap = new google.maps.Map(document.getElementById("gmap"), {
     center:{lat:51.5074,lng:-0.1278}, zoom:13,
@@ -400,83 +399,73 @@ window.initGoogleMap = function() {
   geocoder = new google.maps.Geocoder();
   placesService = new google.maps.places.PlacesService(gmap);
   gmap.addListener("click", e => {
-    if(!e.placeId) return;
-    e.stop();
+    if(!e.placeId) return; e.stop();
     placesService.getDetails({placeId:e.placeId, fields:["name","formatted_address","geometry","website"]}, (place, status) => {
-      if(status !== google.maps.places.PlacesServiceStatus.OK) return;
-      const loc = place.geometry.location;
+      if(status!==google.maps.places.PlacesServiceStatus.OK) return;
+      const loc=place.geometry.location;
       gmap.setCenter(loc); gmap.setZoom(16);
       if(activeMarker) activeMarker.setMap(null);
-      activeMarker = new google.maps.Marker({position:loc, map:gmap, title:place.name, animation:google.maps.Animation.DROP});
-      new google.maps.InfoWindow({
-        content:`<div style="font-family:system-ui"><b style="font-size:13px">${place.name}</b><div style="font-size:11px;color:#888;margin-top:2px">${place.formatted_address||""}</div></div>`
-      }).open(gmap, activeMarker);
-      pendingPlace = {name:place.name, addr:place.formatted_address||"", website:place.website||"", lat:loc.lat(), lng:loc.lng()};
-      document.getElementById("map-info-name").textContent = place.name;
-      document.getElementById("map-info-name").className = "map-info-name on";
-      activeAddr = place.formatted_address||place.name;
-      document.getElementById("gmaps-open-btn").style.display = "";
+      activeMarker=new google.maps.Marker({position:loc,map:gmap,title:place.name,animation:google.maps.Animation.DROP});
+      new google.maps.InfoWindow({content:`<div style="font-family:system-ui"><b style="font-size:13px">${place.name}</b><div style="font-size:11px;color:#888;margin-top:2px">${place.formatted_address||""}</div></div>`}).open(gmap,activeMarker);
+      pendingPlace={name:place.name,addr:place.formatted_address||"",website:place.website||"",lat:loc.lat(),lng:loc.lng()};
+      document.getElementById("map-info-name").textContent=place.name;
+      document.getElementById("map-info-name").className="map-info-name on";
+      activeAddr=place.formatted_address||place.name;
+      document.getElementById("gmaps-open-btn").style.display="";
     });
   });
 };
 
 function focusMapOnPlace(place) {
   if(!gmap||!place) return;
-  const doFocus = loc => {
+  const doFocus=loc=>{
     gmap.setCenter(loc); gmap.setZoom(16);
     if(activeMarker) activeMarker.setMap(null);
-    activeMarker = new google.maps.Marker({
-      position:loc, map:gmap, title:place.name, animation:google.maps.Animation.DROP,
-      icon:{path:google.maps.SymbolPath.CIRCLE, scale:10, fillColor:CAT_COLOR[place.cat]||"#888", fillOpacity:1, strokeColor:"#fff", strokeWeight:2.5}
-    });
-    activeAddr = place.addr||"";
-    document.getElementById("map-info-name").textContent = place.name;
-    document.getElementById("map-info-name").className = "map-info-name on";
-    document.getElementById("gmaps-open-btn").style.display = "";
+    activeMarker=new google.maps.Marker({position:loc,map:gmap,title:place.name,animation:google.maps.Animation.DROP,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:CAT_COLOR[place.cat]||"#888",fillOpacity:1,strokeColor:"#fff",strokeWeight:2.5}});
+    activeAddr=place.addr||"";
+    document.getElementById("map-info-name").textContent=place.name;
+    document.getElementById("map-info-name").className="map-info-name on";
+    document.getElementById("gmaps-open-btn").style.display="";
     renderAllPins();
   };
-  if(place.lat&&place.lng) doFocus({lat:place.lat, lng:place.lng});
-  else if(place.addr) geocoder.geocode({address:place.addr}, (r,s) => { if(s==="OK"&&r[0]) doFocus(r[0].geometry.location); });
+  if(place.lat&&place.lng) doFocus({lat:place.lat,lng:place.lng});
+  else if(place.addr) geocoder.geocode({address:place.addr},(r,s)=>{if(s==="OK"&&r[0])doFocus(r[0].geometry.location);});
 }
-
 function renderAllPins() {
   allMarkers.forEach(m=>m.setMap(null)); allMarkers=[];
   if(!gmap||!cur) return;
-  cur.places.forEach(pl => {
-    const doPin = loc => {
-      const m = new google.maps.Marker({
-        position:loc, map:gmap, title:pl.name,
-        icon:{path:google.maps.SymbolPath.CIRCLE, scale:7, fillColor:CAT_COLOR[pl.cat]||"#888", fillOpacity:.85, strokeColor:"#fff", strokeWeight:1.5}
-      });
-      m.addListener("click", ()=>focusMapOnPlace(pl));
-      allMarkers.push(m);
+  cur.places.forEach(pl=>{
+    const doPin=loc=>{
+      const m=new google.maps.Marker({position:loc,map:gmap,title:pl.name,
+        icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:CAT_COLOR[pl.cat]||"#888",fillOpacity:.85,strokeColor:"#fff",strokeWeight:1.5}});
+      m.addListener("click",()=>focusMapOnPlace(pl)); allMarkers.push(m);
     };
-    if(pl.lat&&pl.lng) doPin({lat:pl.lat, lng:pl.lng});
-    else if(pl.addr) geocoder.geocode({address:pl.addr}, (r,s) => { if(s==="OK"&&r[0]) doPin(r[0].geometry.location); });
+    if(pl.lat&&pl.lng) doPin({lat:pl.lat,lng:pl.lng});
+    else if(pl.addr) geocoder.geocode({address:pl.addr},(r,s)=>{if(s==="OK"&&r[0])doPin(r[0].geometry.location);});
   });
 }
 
 /* ── 카드 렌더 ── */
 function renderCards() {
-  const g = document.getElementById("cards-grid"); g.innerHTML="";
-  trips.forEach(t => {
-    const s=t.start?fmtDate(t.start):"", e=t.end?fmtDate(t.end):"";
-    const c = document.createElement("div"); c.className="trip-card"; c.onclick=()=>openTrip(t.id);
+  const g=document.getElementById("cards-grid"); g.innerHTML="";
+  trips.forEach(t=>{
+    const s=t.start?fmtDate(t.start):"",e=t.end?fmtDate(t.end):"";
+    const c=document.createElement("div"); c.className="trip-card"; c.onclick=()=>openTrip(t.id);
     c.innerHTML=`<div class="tc-emoji">${t.emoji}</div><div class="tc-name">${t.dest}</div><div class="tc-date">${s&&e?s+" – "+e:s||e||"날짜 미정"}</div><div class="tc-footer"><button class="btn btn-danger btn-sm">삭제</button></div>`;
-    c.querySelector(".btn-danger").addEventListener("click", e2=>{ e2.stopPropagation(); trips=trips.filter(x=>x.id!==t.id); saveToFirestore(); renderCards(); });
+    c.querySelector(".btn-danger").addEventListener("click",e2=>{e2.stopPropagation();trips=trips.filter(x=>x.id!==t.id);saveToFirestore();renderCards();});
     g.appendChild(c);
   });
-  const a = document.createElement("div"); a.className="add-card";
+  const a=document.createElement("div"); a.className="add-card";
   a.innerHTML='<span style="font-size:22px;line-height:1">+</span><span>새 여행 추가</span>';
-  a.addEventListener("click", ()=>document.getElementById("trip-modal").classList.add("open"));
+  a.addEventListener("click",()=>document.getElementById("trip-modal").classList.add("open"));
   g.appendChild(a);
 }
 
-/* ── 여행 열기 ── */
 function openTrip(id) {
   cur=trips.find(t=>t.id===id); selEvIdx=null; activeAddr=""; allMarkers=[]; editingPlaceId=null; editingEvIdx=null; pendingPlace=null; placesTab="cat";
   document.getElementById("tp-dest").textContent=cur.emoji+" "+cur.dest;
-  const s=cur.start?fmtDate(cur.start):"", e=cur.end?fmtDate(cur.end):"";
+  const s=cur.start?fmtDate(cur.start):"",e=cur.end?fmtDate(cur.end):"";
   document.getElementById("tp-period").textContent=s&&e?s+" – "+e:s||e||"날짜 미정";
   document.getElementById("map-info-name").textContent="장소를 클릭하면 여기에 표시됩니다";
   document.getElementById("map-info-name").className="map-info-name";
@@ -484,10 +473,12 @@ function openTrip(id) {
   document.getElementById("tab-cat").classList.add("active");
   document.getElementById("tab-date").classList.remove("active");
   showDetail(null); renderTimeline(); renderPlaces(); showPage("trip-page");
-  setTimeout(()=>{ if(!gmap) { const s=document.createElement("script"); s.src=`https://maps.googleapis.com/maps/api/js?key=${GMAP_KEY}&libraries=places&callback=initGoogleMap`; s.async=true; document.head.appendChild(s); } else renderAllPins(); }, 300);
+  setTimeout(()=>{
+    if(!gmap){const s=document.createElement("script");s.src=`https://maps.googleapis.com/maps/api/js?key=${GMAP_KEY}&libraries=places&callback=initGoogleMap`;s.async=true;document.head.appendChild(s);}
+    else renderAllPins();
+  },300);
 }
 
-/* ── 장소 모달 ── */
 function openPlaceModal(pid) {
   editingPlaceId=pid;
   const pl=pid!==null?cur.places.find(p=>p.id===pid):null;
@@ -502,39 +493,37 @@ function openPlaceModal(pid) {
   document.getElementById("place-modal").classList.add("open");
 }
 function savePlace() {
-  const name=document.getElementById("pm-name").value.trim(); if(!name) return;
-  const data={name, cat:document.getElementById("pm-cat").value, addr:document.getElementById("pm-addr").value.trim(),
-    link:document.getElementById("pm-link").value.trim(), memo:document.getElementById("pm-memo").value.trim(),
-    lat:parseFloat(document.getElementById("pm-lat").value)||null, lng:parseFloat(document.getElementById("pm-lng").value)||null};
-  if(editingPlaceId!==null) Object.assign(cur.places.find(p=>p.id===editingPlaceId), data);
-  else cur.places.push({id:uid(), ...data});
-  saveToFirestore(); renderPlaces(); renderPlaceSelect(); if(gmap) renderAllPins();
+  const name=document.getElementById("pm-name").value.trim(); if(!name)return;
+  const data={name,cat:document.getElementById("pm-cat").value,addr:document.getElementById("pm-addr").value.trim(),
+    link:document.getElementById("pm-link").value.trim(),memo:document.getElementById("pm-memo").value.trim(),
+    lat:parseFloat(document.getElementById("pm-lat").value)||null,lng:parseFloat(document.getElementById("pm-lng").value)||null};
+  if(editingPlaceId!==null) Object.assign(cur.places.find(p=>p.id===editingPlaceId),data);
+  else cur.places.push({id:uidGen(),...data});
+  saveToFirestore(); renderPlaces(); renderPlaceSelect(); if(gmap)renderAllPins();
   document.getElementById("place-modal").classList.remove("open");
 }
 function deletePlace(pid) {
   cur.places=cur.places.filter(p=>p.id!==pid);
-  cur.events.forEach(ev=>{ if(ev.placeId===pid) ev.placeId=null; });
-  saveToFirestore(); renderPlaces(); renderTimeline(); renderPlaceSelect(); if(gmap) renderAllPins();
+  cur.events.forEach(ev=>{if(ev.placeId===pid)ev.placeId=null;});
+  saveToFirestore(); renderPlaces(); renderTimeline(); renderPlaceSelect(); if(gmap)renderAllPins();
 }
-
 function makePlaceCard(pl) {
   const card=document.createElement("div"); card.className="place-card";
-  card.addEventListener("click", ()=>focusMapOnPlace(pl));
-  const color=CAT_COLOR[pl.cat]||"#888", bg=CAT_BG[pl.cat]||"#f2f2f2";
+  card.addEventListener("click",()=>focusMapOnPlace(pl));
+  const color=CAT_COLOR[pl.cat]||"#888",bg=CAT_BG[pl.cat]||"#f2f2f2";
   card.innerHTML=`<div class="pc-icon" style="background:${bg};color:${color}">${CAT_ICON[pl.cat]||"📌"}</div><div class="pc-info"><div class="pc-name">${pl.name}</div><div class="pc-addr">${pl.addr||pl.memo||"—"}</div></div><div class="pc-actions"><button class="btn btn-xs">편집</button><button class="btn btn-xs btn-danger">삭제</button></div>`;
-  card.querySelectorAll(".btn-xs")[0].addEventListener("click", e2=>{ e2.stopPropagation(); openPlaceModal(pl.id); });
-  card.querySelectorAll(".btn-xs")[1].addEventListener("click", e2=>{ e2.stopPropagation(); deletePlace(pl.id); });
+  card.querySelectorAll(".btn-xs")[0].addEventListener("click",e2=>{e2.stopPropagation();openPlaceModal(pl.id);});
+  card.querySelectorAll(".btn-xs")[1].addEventListener("click",e2=>{e2.stopPropagation();deletePlace(pl.id);});
   return card;
 }
-
 function renderPlaces() {
   const container=document.getElementById("places-list"); container.innerHTML="";
-  if(!cur.places.length){ container.innerHTML="<div style='color:#ccc;font-size:12px;text-align:center;padding:1.2rem 0'>장소를 추가해보세요</div>"; return; }
-  if(placesTab==="cat") {
+  if(!cur.places.length){container.innerHTML="<div style='color:#ccc;font-size:12px;text-align:center;padding:1.2rem 0'>장소를 추가해보세요</div>";return;}
+  if(placesTab==="cat"){
     const usedCats=[...new Set(cur.places.map(p=>p.cat))];
     const sorted=CAT_ORDER.filter(c=>usedCats.includes(c));
-    sorted.forEach(cat => {
-      const items=cur.places.filter(p=>p.cat===cat); if(!items.length) return;
+    sorted.forEach(cat=>{
+      const items=cur.places.filter(p=>p.cat===cat); if(!items.length)return;
       const sec=document.createElement("div"); sec.className="cat-section";
       const ch=document.createElement("div"); ch.className="cat-label";
       ch.innerHTML=`<span>${CAT_ICON[cat]||"📌"}</span><span>${cat}</span>`; sec.appendChild(ch);
@@ -542,21 +531,21 @@ function renderPlaces() {
     });
   } else {
     const days=getDays(); const byDate={};
-    (cur.events||[]).forEach(ev=>{ if(!ev.placeId)return; const k=ev.date||"날짜 미정"; if(!byDate[k])byDate[k]=new Set(); byDate[k].add(ev.placeId); });
+    (cur.events||[]).forEach(ev=>{if(!ev.placeId)return;const k=ev.date||"날짜 미정";if(!byDate[k])byDate[k]=new Set();byDate[k].add(ev.placeId);});
     const assignedIds=new Set(Object.values(byDate).flatMap(s=>[...s]));
     const unassigned=cur.places.filter(p=>!assignedIds.has(p.id));
-    const orderedDates=[...days.filter(d=>byDate[d]), ...Object.keys(byDate).filter(d=>!days.includes(d)&&d!=="날짜 미정")];
-    if(byDate["날짜 미정"]) orderedDates.push("날짜 미정");
-    orderedDates.forEach(d => {
-      const ids=byDate[d]; if(!ids) return;
+    const orderedDates=[...days.filter(d=>byDate[d]),...Object.keys(byDate).filter(d=>!days.includes(d)&&d!=="날짜 미정")];
+    if(byDate["날짜 미정"])orderedDates.push("날짜 미정");
+    orderedDates.forEach(d=>{
+      const ids=byDate[d]; if(!ids)return;
       const sec=document.createElement("div"); sec.className="cat-section";
       const ch=document.createElement("div"); ch.className="cat-label";
       const dayNum=days.indexOf(d);
       ch.innerHTML=`<span>📅</span><span>${d==="날짜 미정"?"날짜 미정":"Day "+(dayNum+1)+"  ·  "+fmtDate(d)}</span>`; sec.appendChild(ch);
-      [...ids].forEach(id=>{ const pl=cur.places.find(p=>p.id===id); if(pl) sec.appendChild(makePlaceCard(pl)); });
+      [...ids].forEach(id=>{const pl=cur.places.find(p=>p.id===id);if(pl)sec.appendChild(makePlaceCard(pl));});
       container.appendChild(sec);
     });
-    if(unassigned.length) {
+    if(unassigned.length){
       const sec=document.createElement("div"); sec.className="cat-section";
       const ch=document.createElement("div"); ch.className="cat-label";
       ch.innerHTML=`<span>📌</span><span>일정 미배정</span>`; sec.appendChild(ch);
@@ -564,8 +553,6 @@ function renderPlaces() {
     }
   }
 }
-
-/* ── 이벤트 모달 ── */
 function openEventModal(evIdx) {
   editingEvIdx=evIdx;
   const ev=evIdx!==null?cur.events[evIdx]:null;
@@ -577,28 +564,26 @@ function openEventModal(evIdx) {
   document.getElementById("em-link").value=ev?ev.link:"";
   const sel=document.getElementById("em-place");
   sel.innerHTML="<option value=''>— 장소 없음 —</option>";
-  cur.places.forEach(pl=>{ const o=document.createElement("option"); o.value=pl.id; o.textContent=`${CAT_ICON[pl.cat]||"📌"} ${pl.name}`; if(ev&&ev.placeId===pl.id)o.selected=true; sel.appendChild(o); });
+  cur.places.forEach(pl=>{const o=document.createElement("option");o.value=pl.id;o.textContent=`${CAT_ICON[pl.cat]||"📌"} ${pl.name}`;if(ev&&ev.placeId===pl.id)o.selected=true;sel.appendChild(o);});
   document.getElementById("event-modal").classList.add("open");
 }
 function saveEventModal() {
-  const name=document.getElementById("em-name").value.trim(); if(!name) return;
+  const name=document.getElementById("em-name").value.trim(); if(!name)return;
   const plVal=document.getElementById("em-place").value;
-  const data={name, date:document.getElementById("em-date").value, time:document.getElementById("em-time").value,
-    placeId:plVal?Number(plVal):null, memo:document.getElementById("em-memo").value.trim(), link:document.getElementById("em-link").value.trim()};
-  if(editingEvIdx!==null) Object.assign(cur.events[editingEvIdx], data);
-  else cur.events.push({id:uid(), ...data});
+  const data={name,date:document.getElementById("em-date").value,time:document.getElementById("em-time").value,
+    placeId:plVal?Number(plVal):null,memo:document.getElementById("em-memo").value.trim(),link:document.getElementById("em-link").value.trim()};
+  if(editingEvIdx!==null) Object.assign(cur.events[editingEvIdx],data);
+  else cur.events.push({id:uidGen(),...data});
   saveToFirestore(); renderTimeline(); document.getElementById("event-modal").classList.remove("open");
 }
-
-/* ── 타임라인 ── */
 function renderTimeline() {
   const tl=document.getElementById("timeline"); tl.innerHTML="";
   const days=getDays(); const byDay={};
-  (cur.events||[]).forEach((ev,i)=>{ const k=ev.date||"미정"; if(!byDay[k])byDay[k]=[]; byDay[k].push({ev,i}); });
+  (cur.events||[]).forEach((ev,i)=>{const k=ev.date||"미정";if(!byDay[k])byDay[k]=[];byDay[k].push({ev,i});});
   const allDays=[...new Set([...days,...Object.keys(byDay).filter(d=>!days.includes(d)&&d!=="미정")])];
-  if(byDay["미정"]) allDays.push("미정");
-  if(!allDays.length){ tl.innerHTML="<div style='color:#ccc;font-size:12px;text-align:center;padding:1rem 0'>상단 + 버튼으로 일정을 추가해보세요</div>"; return; }
-  allDays.forEach(day => {
+  if(byDay["미정"])allDays.push("미정");
+  if(!allDays.length){tl.innerHTML="<div style='color:#ccc;font-size:12px;text-align:center;padding:1rem 0'>상단 + 버튼으로 일정을 추가해보세요</div>";return;}
+  allDays.forEach(day=>{
     const items=byDay[day]||[];
     const g=document.createElement("div"); g.style.marginBottom="10px";
     const lbl=document.createElement("div"); lbl.className="day-lbl";
@@ -607,42 +592,40 @@ function renderTimeline() {
     items.forEach(({ev,i})=>{
       const pl=ev.placeId?cur.places.find(p=>p.id===ev.placeId):null;
       const row=document.createElement("div"); row.className="tl-item"+(selEvIdx===i?" sel":"");
-      row.addEventListener("click", ()=>{ selEvIdx=i; renderTimeline(); showDetail(i); if(pl) focusMapOnPlace(pl); });
+      row.addEventListener("click",()=>{selEvIdx=i;renderTimeline();showDetail(i);if(pl)focusMapOnPlace(pl);});
       row.innerHTML=`<div class="time-dot${pl?" has-place":""}"></div><div class="tl-txt"><div class="tl-name">${ev.name||"(이름 없음)"}</div><div class="tl-ref">${ev.time?ev.time+" · ":""}${pl?`${CAT_ICON[pl.cat]||""} ${pl.name}`:"장소 미지정"}</div></div><button class="btn btn-xs" style="opacity:.4;flex-shrink:0">편집</button>`;
-      row.querySelector(".btn-xs").addEventListener("click", e2=>{ e2.stopPropagation(); openEventModal(i); });
+      row.querySelector(".btn-xs").addEventListener("click",e2=>{e2.stopPropagation();openEventModal(i);});
       g.appendChild(row);
     });
     tl.appendChild(g);
   });
 }
-
-/* ── 세부내역 ── */
 function renderPlaceSelect() {
-  const box=document.getElementById("place-ref-box"); if(!box) return;
+  const box=document.getElementById("place-ref-box"); if(!box)return;
   const ev=selEvIdx!==null?cur.events[selEvIdx]:null;
   const pl=ev?.placeId?cur.places.find(p=>p.id===ev.placeId):null;
   placeDropdownOpen=false;
   let html="";
   if(pl) html+=`<div class="place-ref-top" id="place-ref-toggle"><span>${CAT_ICON[pl.cat]||"📌"}</span><span style="flex:1;font-weight:500">${pl.name}</span><span style="font-size:11px;color:#999;margin-right:4px">${pl.cat}</span><span style="font-size:10px;color:#bbb">▼</span></div>`;
-  else     html+=`<div class="place-ref-top" id="place-ref-toggle"><span style="flex:1;color:#bbb">장소 선택...</span><span style="font-size:10px;color:#ccc">▼</span></div>`;
+  else    html+=`<div class="place-ref-top" id="place-ref-toggle"><span style="flex:1;color:#bbb">장소 선택...</span><span style="font-size:10px;color:#ccc">▼</span></div>`;
   html+=`<div class="place-dropdown" id="place-dropdown"><div class="place-opt${!pl?" selected":""}" data-pid="null"><span style="color:#bbb">✕</span><span style="flex:1;color:#999">장소 없음</span></div>`;
-  cur.places.forEach(p=>{ html+=`<div class="place-opt${ev?.placeId===p.id?" selected":""}" data-pid="${p.id}"><span>${CAT_ICON[p.cat]||"📌"}</span><span style="flex:1">${p.name}</span><span style="font-size:10px;color:#999">${p.cat}</span></div>`; });
+  cur.places.forEach(p=>{html+=`<div class="place-opt${ev?.placeId===p.id?" selected":""}" data-pid="${p.id}"><span>${CAT_ICON[p.cat]||"📌"}</span><span style="flex:1">${p.name}</span><span style="font-size:10px;color:#999">${p.cat}</span></div>`;});
   html+=`</div>`;
   box.innerHTML=html;
-  document.getElementById("place-ref-toggle").addEventListener("click", ()=>{ placeDropdownOpen=!placeDropdownOpen; document.getElementById("place-dropdown").classList.toggle("open",placeDropdownOpen); });
+  document.getElementById("place-ref-toggle").addEventListener("click",()=>{placeDropdownOpen=!placeDropdownOpen;document.getElementById("place-dropdown").classList.toggle("open",placeDropdownOpen);});
   box.querySelectorAll(".place-opt").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      if(selEvIdx===null) return;
+    el.addEventListener("click",()=>{
+      if(selEvIdx===null)return;
       const pid=el.dataset.pid==="null"?null:Number(el.dataset.pid);
       cur.events[selEvIdx].placeId=pid;
       saveToFirestore(); placeDropdownOpen=false; renderPlaceSelect(); renderTimeline();
-      if(pid){ const p=cur.places.find(x=>x.id===pid); if(p) focusMapOnPlace(p); }
+      if(pid){const p=cur.places.find(x=>x.id===pid);if(p)focusMapOnPlace(p);}
     });
   });
 }
 function showDetail(idx) {
-  const empty=document.getElementById("d-empty"), form=document.getElementById("d-form");
-  if(idx===null||idx===undefined){ empty.style.display="flex"; form.style.display="none"; return; }
+  const empty=document.getElementById("d-empty"),form=document.getElementById("d-form");
+  if(idx===null||idx===undefined){empty.style.display="flex";form.style.display="none";return;}
   const ev=cur.events[idx]; empty.style.display="none"; form.style.display="flex";
   document.getElementById("d-name").value=ev.name||"";
   document.getElementById("d-date").value=ev.date||"";
@@ -652,7 +635,7 @@ function showDetail(idx) {
   renderPlaceSelect();
 }
 function saveEvent() {
-  if(selEvIdx===null) return;
+  if(selEvIdx===null)return;
   const ev=cur.events[selEvIdx];
   ev.name=document.getElementById("d-name").value;
   ev.date=document.getElementById("d-date").value;
@@ -662,69 +645,64 @@ function saveEvent() {
   saveToFirestore(); renderTimeline();
 }
 function deleteEvent() {
-  if(selEvIdx===null) return;
+  if(selEvIdx===null)return;
   cur.events.splice(selEvIdx,1); selEvIdx=null;
   saveToFirestore(); renderTimeline(); showDetail(null);
 }
-
-/* ── HTML 내보내기 ── */
 function exportHTML() {
-  // 현재 파일 자체를 그대로 복사 (trips 데이터 포함)
-  const src = document.documentElement.outerHTML;
-  const blob = new Blob([src], {type:"text/html"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "여행플래너_" + new Date().toISOString().slice(0,10) + ".html";
-  a.click();
+  const src=document.documentElement.outerHTML;
+  const blob=new Blob([src],{type:"text/html"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="여행플래너_"+new Date().toISOString().slice(0,10)+".html"; a.click();
 }
 
 /* ── 이벤트 연결 ── */
 document.addEventListener("DOMContentLoaded", () => {
-  /* 리디렉트 결과 처리 */
-  try {
-    const result = await auth.getRedirectResult();
-    if (result?.user) console.log("리디렉트 로그인 성공");
-  } catch(e) { console.error(e); }
   document.getElementById("btn-google-login").addEventListener("click", () => {
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    if (isMobile) auth.signInWithRedirect(provider).catch(console.error);
-    else auth.signInWithPopup(provider).catch(console.error);
+    const isMobile=/Android|iPhone|iPad/i.test(navigator.userAgent);
+    setStatus("로그인 시도 중...", isMobile?"리디렉트 방식":"팝업 방식");
+    const loginErr=document.getElementById("login-error");
+    if(isMobile) {
+      auth.signInWithRedirect(provider).catch(e=>{loginErr.textContent="오류: "+e.message;loginErr.style.display="block";});
+    } else {
+      auth.signInWithPopup(provider).catch(e=>{loginErr.textContent="오류: "+e.message;loginErr.style.display="block";});
+    }
   });
-  document.getElementById("btn-signout").addEventListener("click", () => auth.signOut().then(()=>{ trips=[]; document.getElementById("login-page").style.display="flex"; document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("loading-page").style.display="none"; }));
-  document.getElementById("btn-go-home").addEventListener("click", ()=>{ cur=null; selEvIdx=null; renderCards(); showPage("home"); });
-  document.getElementById("btn-open-trip-modal").addEventListener("click", ()=>document.getElementById("trip-modal").classList.add("open"));
-  document.getElementById("btn-close-trip-modal").addEventListener("click", ()=>document.getElementById("trip-modal").classList.remove("open"));
-  document.getElementById("btn-add-trip").addEventListener("click", ()=>{
-    const dest=document.getElementById("tm-dest").value.trim(); if(!dest) return;
-    trips.push({id:uid(), dest, start:document.getElementById("tm-start").value, end:document.getElementById("tm-end").value, emoji:document.getElementById("tm-emoji").value, events:[], places:[]});
+  document.getElementById("btn-signout").addEventListener("click", ()=>auth.signOut().then(()=>{trips=[];showPage(null);document.getElementById("login-page").style.display="flex";}));
+  document.getElementById("btn-go-home").addEventListener("click",()=>{cur=null;selEvIdx=null;renderCards();showPage("home");});
+  document.getElementById("btn-open-trip-modal").addEventListener("click",()=>document.getElementById("trip-modal").classList.add("open"));
+  document.getElementById("btn-close-trip-modal").addEventListener("click",()=>document.getElementById("trip-modal").classList.remove("open"));
+  document.getElementById("btn-add-trip").addEventListener("click",()=>{
+    const dest=document.getElementById("tm-dest").value.trim(); if(!dest)return;
+    trips.push({id:uidGen(),dest,start:document.getElementById("tm-start").value,end:document.getElementById("tm-end").value,emoji:document.getElementById("tm-emoji").value,events:[],places:[]});
     saveToFirestore(); renderCards(); document.getElementById("trip-modal").classList.remove("open"); document.getElementById("tm-dest").value="";
   });
-  document.getElementById("btn-open-event-modal").addEventListener("click", ()=>openEventModal(null));
-  document.getElementById("btn-delete-event").addEventListener("click", deleteEvent);
-  document.getElementById("btn-save-event").addEventListener("click", saveEvent);
-  document.getElementById("btn-open-place-modal").addEventListener("click", ()=>openPlaceModal(null));
-  document.getElementById("btn-close-place-modal").addEventListener("click", ()=>document.getElementById("place-modal").classList.remove("open"));
-  document.getElementById("btn-save-place").addEventListener("click", savePlace);
-  document.getElementById("btn-close-event-modal").addEventListener("click", ()=>document.getElementById("event-modal").classList.remove("open"));
-  document.getElementById("btn-save-event-modal").addEventListener("click", saveEventModal);
-  document.getElementById("tab-cat").addEventListener("click", ()=>{ placesTab="cat"; document.getElementById("tab-cat").classList.add("active"); document.getElementById("tab-date").classList.remove("active"); renderPlaces(); });
-  document.getElementById("tab-date").addEventListener("click", ()=>{ placesTab="date"; document.getElementById("tab-date").classList.add("active"); document.getElementById("tab-cat").classList.remove("active"); renderPlaces(); });
-  document.getElementById("btn-google-login").addEventListener("click", ()=>signInWithRedirect(auth, provider).catch(console.error)); ()=>{
-    if(!gmap) return;
-    const q=document.getElementById("map-search-input").value.trim(); if(!q) return;
-    geocoder.geocode({address:q}, (r,s)=>{
-      if(s!=="OK"||!r[0]){ alert("위치를 찾지 못했어요."); return; }
+  document.getElementById("btn-open-event-modal").addEventListener("click",()=>openEventModal(null));
+  document.getElementById("btn-delete-event").addEventListener("click",deleteEvent);
+  document.getElementById("btn-save-event").addEventListener("click",saveEvent);
+  document.getElementById("btn-open-place-modal").addEventListener("click",()=>openPlaceModal(null));
+  document.getElementById("btn-close-place-modal").addEventListener("click",()=>document.getElementById("place-modal").classList.remove("open"));
+  document.getElementById("btn-save-place").addEventListener("click",savePlace);
+  document.getElementById("btn-close-event-modal").addEventListener("click",()=>document.getElementById("event-modal").classList.remove("open"));
+  document.getElementById("btn-save-event-modal").addEventListener("click",saveEventModal);
+  document.getElementById("tab-cat").addEventListener("click",()=>{placesTab="cat";document.getElementById("tab-cat").classList.add("active");document.getElementById("tab-date").classList.remove("active");renderPlaces();});
+  document.getElementById("tab-date").addEventListener("click",()=>{placesTab="date";document.getElementById("tab-date").classList.add("active");document.getElementById("tab-cat").classList.remove("active");renderPlaces();});
+  document.getElementById("btn-map-search").addEventListener("click",()=>{
+    if(!gmap)return;
+    const q=document.getElementById("map-search-input").value.trim(); if(!q)return;
+    geocoder.geocode({address:q},(r,s)=>{
+      if(s!=="OK"||!r[0]){alert("위치를 찾지 못했어요.");return;}
       const loc=r[0].geometry.location;
       gmap.setCenter(loc); gmap.setZoom(16);
-      if(activeMarker) activeMarker.setMap(null);
+      if(activeMarker)activeMarker.setMap(null);
       activeMarker=new google.maps.Marker({position:loc,map:gmap,title:q,animation:google.maps.Animation.DROP});
       pendingPlace={name:q,addr:q,website:"",lat:loc.lat(),lng:loc.lng()};
       activeAddr=q; document.getElementById("map-info-name").textContent=q; document.getElementById("map-info-name").className="map-info-name on"; document.getElementById("gmaps-open-btn").style.display="";
     });
   });
-  document.getElementById("map-search-input").addEventListener("keydown", e=>{ if(e.key==="Enter") document.getElementById("btn-map-search").click(); });
-  document.getElementById("gmaps-open-btn").addEventListener("click", ()=>{ if(activeAddr) window.open("https://www.google.com/maps/search/"+encodeURIComponent(activeAddr),"_blank"); });
-  document.getElementById("btn-map-place-add").addEventListener("click", ()=>{
+  document.getElementById("map-search-input").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("btn-map-search").click();});
+  document.getElementById("gmaps-open-btn").addEventListener("click",()=>{if(activeAddr)window.open("https://www.google.com/maps/search/"+encodeURIComponent(activeAddr),"_blank");});
+  document.getElementById("btn-map-place-add").addEventListener("click",()=>{
     openPlaceModal(null);
     if(pendingPlace){
       document.getElementById("pm-name").value=pendingPlace.name||"";
@@ -735,7 +713,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("pm-cat").value="관광지";
     }
   });
-  document.getElementById("btn-export").addEventListener("click", exportHTML);
+  document.getElementById("btn-export").addEventListener("click",exportHTML);
 });
 </script>
 </body>
