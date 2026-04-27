@@ -65,7 +65,7 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 .dform{display:flex;flex-direction:column;gap:9px;padding:.8rem .9rem;overflow-y:auto;flex:1}
 .dform label{font-size:11px;color:#888}
 .dform input,.dform select,.dform textarea{width:100%;border:0.5px solid rgba(0,0,0,.2);border-radius:7px;padding:6px 8px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a1a;resize:vertical}
-.dform textarea{min-height:60px}.dform .row{display:flex;gap:7px}.dform .row>div{flex:1}
+.dform textarea{min-height:180px;overflow-y:auto}.dform .row{display:flex;gap:7px}.dform .row>div{flex:1}
 .dact{display:flex;gap:7px;margin-top:2px}
 .place-ref-box{border:0.5px solid rgba(0,0,0,.2);border-radius:7px;overflow:hidden}
 .place-ref-top{display:flex;align-items:center;gap:8px;padding:7px 9px;font-size:13px;cursor:pointer;transition:background .1s}
@@ -344,7 +344,7 @@ const GMAP_KEY  = "AIzaSyBTsqjIbUgcwN-Z4zoQzxoVJeItmw16Zi0";
 
 let trips=[], curUser=null, cur=null, selEvIdx=null, editingPlaceId=null, editingEvIdx=null;
 let activeAddr="", activeMarker=null, allMarkers=[], gmap=null, geocoder=null, placesService=null, pendingPlace=null;
-let placeDropdownOpen=false, placesTab="cat";
+let placesDropdownOpen=false, placesTab="cat", selectedDateFilter=null;
 
 const uidGen  = () => Date.now() + Math.random();
 const fmtDate = d => { if(!d)return""; const[y,m,day]=d.split("-"); return `${y}년 ${m}월 ${day}일`; };
@@ -443,7 +443,54 @@ window.initGoogleMap = function() {
   });
 };
 
-function focusMapOnPlace(place) {
+function focusMapOnDate(dateKey) {
+  if(!gmap||!cur) return;
+  // 해당 날짜에 연결된 placeId 수집
+  const placeIds = new Set(
+    (cur.events||[]).filter(ev=>ev.placeId&&(ev.date||"날짜 미정")===dateKey).map(ev=>ev.placeId)
+  );
+  const places = cur.places.filter(p=>placeIds.has(p.id)&&(p.lat&&p.lng||p.addr));
+  if(!places.length) return;
+
+  // 모든 핀 제거 후 해당 날짜 핀만 다시 그리기
+  allMarkers.forEach(m=>m.setMap(null)); allMarkers=[];
+  if(activeMarker){activeMarker.setMap(null);activeMarker=null;}
+
+  const bounds = new google.maps.LatLngBounds();
+  let pending = places.length;
+
+  const addPin = (pl, loc) => {
+    const m = new google.maps.Marker({
+      position:loc, map:gmap, title:pl.name,
+      icon:{path:google.maps.SymbolPath.CIRCLE, scale:10,
+        fillColor:CAT_COLOR[pl.cat]||"#888", fillOpacity:1, strokeColor:"#fff", strokeWeight:2.5}
+    });
+    const iw = new google.maps.InfoWindow({content:`<div style="font-family:system-ui"><b style="font-size:13px">${pl.name}</b><div style="font-size:11px;color:#888">${pl.cat}</div></div>`});
+    m.addListener("click",()=>iw.open(gmap,m));
+    allMarkers.push(m);
+    bounds.extend(loc);
+    pending--;
+    if(pending===0) {
+      gmap.fitBounds(bounds);
+      // 너무 확대되면 줌 제한
+      const listener = google.maps.event.addListenerOnce(gmap,"idle",()=>{
+        if(gmap.getZoom()>16) gmap.setZoom(16);
+      });
+    }
+  };
+
+  places.forEach(pl=>{
+    if(pl.lat&&pl.lng) addPin(pl,{lat:pl.lat,lng:pl.lng});
+    else geocoder.geocode({address:pl.addr},(r,s)=>{
+      if(s==="OK"&&r[0]) addPin(pl,r[0].geometry.location);
+      else { pending--; }
+    });
+  });
+
+  // 지도 하단 상태 업데이트
+  document.getElementById("map-info-name").textContent = dateKey==="날짜 미정"?"날짜 미정":fmtDate(dateKey)+" 일정 장소";
+  document.getElementById("map-info-name").className="map-info-name on";
+}
   if(!gmap||!place) return;
   const doFocus=loc=>{
     gmap.setCenter(loc); gmap.setZoom(16);
@@ -568,7 +615,17 @@ function renderPlaces() {
       const sec=document.createElement("div"); sec.className="cat-section";
       const ch=document.createElement("div"); ch.className="cat-label";
       const dayNum=days.indexOf(d);
-      ch.innerHTML=`<span>📅</span><span>${d==="날짜 미정"?"날짜 미정":"Day "+(dayNum+1)+"  ·  "+fmtDate(d)}</span>`; sec.appendChild(ch);
+      const label=d==="날짜 미정"?"날짜 미정":"Day "+(dayNum+1)+"  ·  "+fmtDate(d);
+      const isSelected = selectedDateFilter===d;
+      ch.innerHTML=`<span>📅</span><span style="flex:1">${label}</span><span style="font-size:10px;color:${isSelected?"#1D9E75":"#bbb"}">${isSelected?"지도 표시 중 ✓":"지도에 표시 →"}</span>`;
+      ch.style.cssText="cursor:pointer;padding:4px 6px;border-radius:6px;background:"+(isSelected?"#e8f5ef":"transparent");
+      ch.addEventListener("click",()=>{
+        selectedDateFilter = isSelected?null:d;
+        renderPlaces();
+        if(!isSelected && gmap) focusMapOnDate(d);
+        else if(isSelected && gmap) renderAllPins();
+      });
+      sec.appendChild(ch);
       [...ids].forEach(id=>{const pl=cur.places.find(p=>p.id===id);if(pl)sec.appendChild(makePlaceCard(pl));});
       container.appendChild(sec);
     });
@@ -712,8 +769,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-save-place").addEventListener("click",savePlace);
   document.getElementById("btn-close-event-modal").addEventListener("click",()=>document.getElementById("event-modal").classList.remove("open"));
   document.getElementById("btn-save-event-modal").addEventListener("click",saveEventModal);
-  document.getElementById("tab-cat").addEventListener("click",()=>{placesTab="cat";document.getElementById("tab-cat").classList.add("active");document.getElementById("tab-date").classList.remove("active");renderPlaces();});
-  document.getElementById("tab-date").addEventListener("click",()=>{placesTab="date";document.getElementById("tab-date").classList.add("active");document.getElementById("tab-cat").classList.remove("active");renderPlaces();});
+  document.getElementById("tab-cat").addEventListener("click",()=>{placesTab="cat";selectedDateFilter=null;document.getElementById("tab-cat").classList.add("active");document.getElementById("tab-date").classList.remove("active");renderPlaces();if(gmap)renderAllPins();});
+  document.getElementById("tab-date").addEventListener("click",()=>{placesTab="date";selectedDateFilter=null;document.getElementById("tab-date").classList.add("active");document.getElementById("tab-cat").classList.remove("active");renderPlaces();});
   document.getElementById("btn-map-search").addEventListener("click",()=>{
     if(!gmap)return;
     const q=document.getElementById("map-search-input").value.trim(); if(!q)return;
