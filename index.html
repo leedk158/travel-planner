@@ -411,8 +411,6 @@ async function loadFromFirestore(){
   try{const snap=await db.doc(`users/${curUser.uid}/data/trips`).get();
     if(snap.exists){
       trips=snap.data().trips||[];
-      // "이동" → "교통" 자동 마이그레이션
-      trips.forEach(t=>(t.places||[]).forEach(p=>{if(p.cat==="이동")p.cat="교통";}));
       setStatus("✅ 로드 완료",`여행 ${trips.length}개`);
     }
     else setStatus("저장된 데이터 없음");}
@@ -684,9 +682,9 @@ function saveEventModal(){
 }
 
 /* ── 드롭으로 일정 추가 ── */
-function addEventFromDrop(placeId,dateKey){
+function addEventFromDrop(placeId, dateKey, time=""){
   const pl=cur.places.find(p=>p.id===placeId);if(!pl)return;
-  cur.events.push({id:uidGen(),name:pl.name,date:dateKey==="미정"?"":dateKey,time:"",placeId:pl.id,memo:"",link:""});
+  cur.events.push({id:uidGen(),name:pl.name,date:dateKey==="미정"?"":dateKey,time,placeId:pl.id,memo:"",link:""});
   saveToFirestore();renderTimeline();
   if(selectedDayHeader)showDayView(selectedDayHeader);
   if(gmap)focusMapOnPlace(pl);
@@ -700,7 +698,7 @@ function makeDropZone(dateKey){
   dz.addEventListener("drop",e=>{
     e.preventDefault();dz.classList.remove("drag-over");
     const pid=parseFloat(e.dataTransfer.getData("placeId"));
-    if(pid)addEventFromDrop(pid,dateKey);
+    if(pid) addEventFromDrop(pid, dateKey, calcDropTime(dateKey, beforeIdx));
   });
   return dz;
 }
@@ -736,7 +734,7 @@ function renderTimeline(){
     g.appendChild(makeDropZone(day));
 
     items.sort((a,b)=>(a.ev.time||"").localeCompare(b.ev.time||""));
-    items.forEach(({ev,i})=>{
+    items.forEach(({ev,i}, idx)=>{
       const pl=ev.placeId?cur.places.find(p=>p.id===ev.placeId):null;
       const row=document.createElement("div");row.className="tl-item"+(selEvIdx===i?" sel":"");
       row.addEventListener("click",()=>{selEvIdx=i;selectedDayHeader=null;renderTimeline();showEventDetail(i);if(pl)focusMapOnPlace(pl);});
@@ -794,7 +792,7 @@ function showDayView(dateKey){
 
   // 맨 위 드롭존
   const topDropRow=document.createElement("tr");
-  const topDropTd=document.createElement("td");topDropTd.colSpan=3;topDropTd.style.padding="2px 0";
+        const topDropTd=document.createElement("td");topDropTd.colSpan=3;topDropTd.style.padding="0";
   topDropTd.appendChild(makeDropZone(dateKey));
   topDropRow.appendChild(topDropTd);tbody.appendChild(topDropRow);
 
@@ -813,8 +811,8 @@ function showDayView(dateKey){
       tbody.appendChild(row);
       // 각 행 사이 드롭존
       const dzRow=document.createElement("tr");
-      const dzTd=document.createElement("td");dzTd.colSpan=3;dzTd.style.padding="2px 0";
-      dzTd.appendChild(makeDropZone(dateKey));
+      const dzTd=document.createElement("td");dzTd.colSpan=3;dzTd.style.padding="0";
+      dzTd.appendChild(makeDropZone(dateKey, idx+1));
       dzRow.appendChild(dzTd);tbody.appendChild(dzRow);
     });
   }
