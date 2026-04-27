@@ -117,7 +117,8 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 <div id="loading-page" class="login-wrap">
   <div style="text-align:center;color:#999">
     <div style="font-size:32px;margin-bottom:12px">✈️</div>
-    <div style="font-size:14px">불러오는 중...</div>
+    <div id="loading-msg" style="font-size:14px">Firebase 초기화 중...</div>
+    <div id="loading-detail" style="font-size:11px;color:#bbb;margin-top:8px"></div>
   </div>
 </div>
 
@@ -273,9 +274,9 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 </div>
 
 <!-- Firebase SDK (compat 버전 - 모든 환경에서 안정적) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" onload="console.log('firebase-app 로드됨')" onerror="document.getElementById('loading-msg').textContent='Firebase 앱 SDK 로드 실패!'"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js" onload="console.log('firebase-auth 로드됨')" onerror="document.getElementById('loading-msg').textContent='Firebase Auth SDK 로드 실패!'"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" onload="console.log('firebase-firestore 로드됨')" onerror="document.getElementById('loading-msg').textContent='Firebase Firestore SDK 로드 실패!'"></script>
 <script>
 firebase.initializeApp({
   apiKey: "AIzaSyCyVuM9f51D4LprXU81RHTrxGOAIo6e0ZE",
@@ -296,7 +297,13 @@ const CAT_BG    = {숙소:"#f0effd",맛집:"#fdf0ec",디저트:"#fdf0f5",관광�
 const CAT_ORDER = ["숙소","맛집","디저트","관광지","카페","쇼핑","이동","기타"];
 const GMAP_KEY  = "AIzaSyBTsqjIbUgcwN-Z4zoQzxoVJeItmw16Zi0";
 
-/* ── 상태 ── */
+const setLoadingMsg = (msg, detail="") => {
+  const m = document.getElementById("loading-msg");
+  const d = document.getElementById("loading-detail");
+  if(m) m.textContent = msg;
+  if(d) d.textContent = detail;
+  console.log(msg, detail);
+};
 let trips=[], curUser=null, cur=null, selEvIdx=null, editingPlaceId=null, editingEvIdx=null;
 let activeAddr="", activeMarker=null, allMarkers=[], gmap=null, geocoder=null, placesService=null, pendingPlace=null;
 let placeDropdownOpen=false, placesTab="cat";
@@ -330,14 +337,39 @@ async function saveToFirestore() {
 }
 async function loadFromFirestore() {
   if(!curUser) return;
+  setLoadingMsg("Firestore에서 데이터 불러오는 중...");
   try {
     const snap = await db.doc(`users/${curUser.uid}/data/trips`).get();
-    if(snap.exists) trips = snap.data().trips || [];
-  } catch(e){ console.error(e); }
+    if(snap.exists) {
+      trips = snap.data().trips || [];
+      setLoadingMsg("데이터 불러오기 완료", `여행 ${trips.length}개`);
+    } else {
+      setLoadingMsg("저장된 데이터 없음 (새로 시작)");
+    }
+  } catch(e){
+    setLoadingMsg("Firestore 오류!", e.message);
+    console.error(e);
+  }
 }
 
 /* ── Auth 상태 감지 ── */
   auth.onAuthStateChanged(async user => {
+    setLoadingMsg("인증 상태 확인 중...");
+    if(user) {
+      curUser = user;
+      setLoadingMsg("로그인 확인됨, 데이터 불러오는 중...", user.email);
+      document.getElementById("user-avatar").src = user.photoURL||"";
+      document.getElementById("user-name").textContent = user.displayName||"";
+      await loadFromFirestore();
+      renderCards();
+      showPage("home");
+    } else {
+      curUser = null; trips = [];
+      setLoadingMsg("로그인 필요");
+      document.getElementById("loading-page").style.display = "none";
+      document.getElementById("login-page").style.display = "flex";
+    }
+  });
   if(user) {
     curUser = user;
     document.getElementById("user-avatar").src = user.photoURL||"";
