@@ -781,7 +781,10 @@ function showDayView(dateKey){
   const label=dateKey==="미정"?"날짜 미정":"Day "+(dayNum+1)+"  ·  "+fmtDate(dateKey);
   document.getElementById("detail-panel-title").textContent=label;
 
-  const items=(cur.events||[]).map((ev,i)=>({ev,i})).filter(({ev})=>(ev.date||"미정")===dateKey).sort((a,b)=>(a.ev.time||"").localeCompare(b.ev.time||""));
+  const items=(cur.events||[])
+    .map((ev,i)=>({ev,i}))
+    .filter(({ev})=>(ev.date||"미정")===dateKey)
+    .sort((a,b)=>(a.ev.time||"").localeCompare(b.ev.time||""));
 
   dayView.innerHTML="";
 
