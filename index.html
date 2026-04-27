@@ -272,14 +272,12 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
   </div>
 </div>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-/* ── Firebase 초기화 ── */
-const app = initializeApp({
+<!-- Firebase SDK (compat 버전 - 모든 환경에서 안정적) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
   apiKey: "AIzaSyCyVuM9f51D4LprXU81RHTrxGOAIo6e0ZE",
   authDomain: "project-ac9e9d10-8406-4a21-b27.firebaseapp.com",
   projectId: "project-ac9e9d10-8406-4a21-b27",
@@ -287,9 +285,9 @@ const app = initializeApp({
   messagingSenderId: "404436697876",
   appId: "1:404436697876:web:8cb054ee33d4ff45d67801"
 });
-const auth = getAuth(app);
-const db   = getFirestore(app);
-const provider = new GoogleAuthProvider();
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const provider = new firebase.auth.GoogleAuthProvider();
 
 /* ── 상수 ── */
 const CAT_ICON  = {숙소:"🏨",맛집:"🍜",디저트:"🍰",관광지:"🗺️",카페:"☕",쇼핑:"🛍️",이동:"🚆",기타:"📌"};
@@ -327,19 +325,19 @@ const setSaving = v => {
 async function saveToFirestore() {
   if(!curUser) return;
   setSaving(true);
-  try { await setDoc(doc(db,"users",curUser.uid,"data","trips"), {trips}); } catch(e){ console.error(e); }
+  try { await db.doc(`users/${curUser.uid}/data/trips`).set({trips}); } catch(e){ console.error(e); }
   setSaving(false);
 }
 async function loadFromFirestore() {
   if(!curUser) return;
   try {
-    const snap = await getDoc(doc(db,"users",curUser.uid,"data","trips"));
-    if(snap.exists()) trips = snap.data().trips || [];
+    const snap = await db.doc(`users/${curUser.uid}/data/trips`).get();
+    if(snap.exists) trips = snap.data().trips || [];
   } catch(e){ console.error(e); }
 }
 
 /* ── Auth 상태 감지 ── */
-onAuthStateChanged(auth, async user => {
+  auth.onAuthStateChanged(async user => {
   if(user) {
     curUser = user;
     document.getElementById("user-avatar").src = user.photoURL||"";
@@ -645,17 +643,15 @@ function exportHTML() {
 document.addEventListener("DOMContentLoaded", () => {
   /* 리디렉트 결과 처리 */
   try {
-    const result = await getRedirectResult(auth);
-    if (result?.user) console.log("로그인 성공");
+    const result = await auth.getRedirectResult();
+    if (result?.user) console.log("리디렉트 로그인 성공");
   } catch(e) { console.error(e); }
-
-  /* 모바일이면 redirect, PC면 popup */
-  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
   document.getElementById("btn-google-login").addEventListener("click", () => {
-    if (isMobile) signInWithRedirect(auth, provider).catch(console.error);
-    else signInWithPopup(auth, provider).catch(console.error);
+    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (isMobile) auth.signInWithRedirect(provider).catch(console.error);
+    else auth.signInWithPopup(provider).catch(console.error);
   });
-  document.getElementById("btn-signout").addEventListener("click", ()=>signOut(auth).then(()=>{ trips=[]; showPage(null); document.getElementById("login-page").style.display="flex"; }));
+  document.getElementById("btn-signout").addEventListener("click", () => auth.signOut().then(()=>{ trips=[]; document.getElementById("login-page").style.display="flex"; document.querySelectorAll(".page").forEach(p=>p.classList.remove("active")); document.getElementById("loading-page").style.display="none"; }));
   document.getElementById("btn-go-home").addEventListener("click", ()=>{ cur=null; selEvIdx=null; renderCards(); showPage("home"); });
   document.getElementById("btn-open-trip-modal").addEventListener("click", ()=>document.getElementById("trip-modal").classList.add("open"));
   document.getElementById("btn-close-trip-modal").addEventListener("click", ()=>document.getElementById("trip-modal").classList.remove("open"));
