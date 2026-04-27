@@ -275,7 +275,7 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* ── Firebase 초기화 ── */
@@ -643,12 +643,7 @@ function exportHTML() {
 
 /* ── 이벤트 연결 ── */
 document.addEventListener("DOMContentLoaded", () => {
-  /* 리디렉트 로그인 결과 처리 */
-  try {
-    const result = await getRedirectResult(auth);
-    if (result?.user) console.log("리디렉트 로그인 성공:", result.user.displayName);
-  } catch(e) { console.error("리디렉트 결과 오류:", e); }
-
+  document.getElementById("btn-google-login").addEventListener("click", ()=>signInWithPopup(auth, provider).catch(console.error));
   document.getElementById("btn-signout").addEventListener("click", ()=>signOut(auth).then(()=>{ trips=[]; showPage(null); document.getElementById("login-page").style.display="flex"; }));
   document.getElementById("btn-go-home").addEventListener("click", ()=>{ cur=null; selEvIdx=null; renderCards(); showPage("home"); });
   document.getElementById("btn-open-trip-modal").addEventListener("click", ()=>document.getElementById("trip-modal").classList.add("open"));
