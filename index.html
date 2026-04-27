@@ -224,7 +224,25 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
   </div>
 </div>
 
-<!-- TRIP MODAL -->
+<!-- TRIP EDIT MODAL -->
+<div class="modal-bg" id="trip-edit-modal">
+  <div class="modal">
+    <h3>여행 편집</h3>
+    <label>여행지</label><input id="te-dest" type="text" placeholder="예: 런던, 제주도">
+    <label>출발일</label><input id="te-start" type="date">
+    <label>도착일</label><input id="te-end" type="date">
+    <label>이모지</label>
+    <select id="te-emoji">
+      <option>✈️</option><option>🏖️</option><option>🏔️</option><option>🏯</option>
+      <option>🗼</option><option>🌏</option><option>🚢</option><option>🚗</option>
+      <option>🌸</option><option>🎡</option><option>🏝️</option><option>🎿</option><option>🦁</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn" id="btn-close-trip-edit-modal">취소</button>
+      <button class="btn btn-primary" id="btn-save-trip-edit">저장</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="trip-modal">
   <div class="modal">
     <h3>새 여행 추가</h3>
@@ -235,7 +253,7 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
     <select id="tm-emoji">
       <option>✈️</option><option>🏖️</option><option>🏔️</option><option>🏯</option>
       <option>🗼</option><option>🌏</option><option>🚢</option><option>🚗</option>
-      <option>🇬🇧</option><option>🇯🇵</option><option>🇫🇷</option><option>🇮🇹</option><option>🇺🇸</option>
+      <option>🌸</option><option>🎡</option><option>🏝️</option><option>🎿</option><option>🦁</option>
     </select>
     <div class="modal-actions">
       <button class="btn" id="btn-close-trip-modal">취소</button>
@@ -254,7 +272,7 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
       <option value="숙소">🏨 숙소</option><option value="맛집">🍜 맛집</option>
       <option value="디저트">🍰 디저트</option><option value="관광지">🗺️ 관광지</option>
       <option value="카페">☕ 카페</option><option value="쇼핑">🛍️ 쇼핑</option>
-      <option value="이동">🚆 이동</option><option value="기타">📌 기타</option>
+      <option value="교통">🚆 교통</option><option value="기타">📌 기타</option>
     </select>
     <label>주소</label><input id="pm-addr" type="text" placeholder="예: 12 Upper St Martin's Lane, London">
     <input type="hidden" id="pm-lat"><input type="hidden" id="pm-lng">
@@ -332,18 +350,18 @@ const provider=new firebase.auth.GoogleAuthProvider();
 const authTimer=setTimeout(()=>setStatus("❌ Auth 응답 없음 (10초 초과)","네트워크 또는 authDomain 문제"),10000);
 
 /* ── 상수 ── */
-const CAT_ICON  ={숙소:"🏨",맛집:"🍜",디저트:"🍰",관광지:"🗺️",카페:"☕",쇼핑:"🛍️",이동:"🚆",기타:"📌"};
-const CAT_COLOR ={숙소:"#7F77DD",맛집:"#D85A30",디저트:"#D4537E",관광지:"#1D9E75",카페:"#BA7517",쇼핑:"#378ADD",이동:"#888",기타:"#888"};
-const CAT_BG    ={숙소:"#f0effd",맛집:"#fdf0ec",디저트:"#fdf0f5",관광지:"#e8f5ef",카페:"#fdf5e0",쇼핑:"#e8f1fd",이동:"#f2f2f2",기타:"#f2f2f2"};
-const CAT_ORDER =["숙소","맛집","디저트","관광지","카페","쇼핑","이동","기타"];
+const CAT_ICON  ={숙소:"🏨",맛집:"🍜",디저트:"🍰",관광지:"🗺️",카페:"☕",쇼핑:"🛍️",교통:"🚆",기타:"📌"};
+const CAT_COLOR ={숙소:"#7F77DD",맛집:"#D85A30",디저트:"#D4537E",관광지:"#1D9E75",카페:"#BA7517",쇼핑:"#378ADD",교통:"#888",기타:"#888"};
+const CAT_BG    ={숙소:"#f0effd",맛집:"#fdf0ec",디저트:"#fdf0f5",관광지:"#e8f5ef",카페:"#fdf5e0",쇼핑:"#e8f1fd",교통:"#f2f2f2",기타:"#f2f2f2"};
+const CAT_ORDER =["숙소","맛집","디저트","관광지","카페","쇼핑","교통","기타"];
 const GMAP_KEY  ="AIzaSyBTsqjIbUgcwN-Z4zoQzxoVJeItmw16Zi0";
 
 /* ── 상태 변수 ── */
 let trips=[], curUser=null, cur=null, selEvIdx=null, editingPlaceId=null, editingEvIdx=null;
 let activeAddr="", activeMarker=null, allMarkers=[], gmap=null, geocoder=null, placesService=null, pendingPlace=null;
-let placeDropdownOpen=false, placesTab="cat", selectedDateFilter=null;
+let editingTripId=null;
 
-/* ── 유틸 ── */
+let placeDropdownOpen=false, placesTab="cat", selectedDateFilter=null;
 const uidGen  =()=>Date.now()+Math.random();
 const fmtDate =d=>{if(!d)return"";const[y,m,day]=d.split("-");return`${y}년 ${m}월 ${day}일`;};
 const getDays =()=>{
@@ -497,14 +515,32 @@ function renderAllPins(){
   });
 }
 
-/* ── 카드 ── */
+function openTripEditModal(id) {
+  editingTripId=id;
+  const t=trips.find(x=>x.id===id);
+  document.getElementById("te-dest").value=t.dest||"";
+  document.getElementById("te-start").value=t.start||"";
+  document.getElementById("te-end").value=t.end||"";
+  document.getElementById("te-emoji").value=t.emoji||"✈️";
+  document.getElementById("trip-edit-modal").classList.add("open");
+}
+function saveTripEdit() {
+  const t=trips.find(x=>x.id===editingTripId); if(!t)return;
+  t.dest=document.getElementById("te-dest").value.trim()||t.dest;
+  t.start=document.getElementById("te-start").value;
+  t.end=document.getElementById("te-end").value;
+  t.emoji=document.getElementById("te-emoji").value;
+  saveToFirestore(); renderCards();
+  document.getElementById("trip-edit-modal").classList.remove("open");
+}
 function renderCards(){
   const g=document.getElementById("cards-grid");g.innerHTML="";
   trips.forEach(t=>{
     const s=t.start?fmtDate(t.start):"",e=t.end?fmtDate(t.end):"";
     const c=document.createElement("div");c.className="trip-card";c.onclick=()=>openTrip(t.id);
-    c.innerHTML=`<div class="tc-emoji">${t.emoji}</div><div class="tc-name">${t.dest}</div><div class="tc-date">${s&&e?s+" – "+e:s||e||"날짜 미정"}</div><div class="tc-footer"><button class="btn btn-danger btn-sm">삭제</button></div>`;
-    c.querySelector(".btn-danger").addEventListener("click",e2=>{e2.stopPropagation();trips=trips.filter(x=>x.id!==t.id);saveToFirestore();renderCards();});
+    c.innerHTML=`<div class="tc-emoji">${t.emoji}</div><div class="tc-name">${t.dest}</div><div class="tc-date">${s&&e?s+" – "+e:s||e||"날짜 미정"}</div><div class="tc-footer"><button class="btn btn-sm edit-trip-btn">편집</button><button class="btn btn-danger btn-sm del-trip-btn">삭제</button></div>`;
+    c.querySelector(".edit-trip-btn").addEventListener("click",e2=>{e2.stopPropagation();openTripEditModal(t.id);});
+    c.querySelector(".del-trip-btn").addEventListener("click",e2=>{e2.stopPropagation();trips=trips.filter(x=>x.id!==t.id);saveToFirestore();renderCards();});
     g.appendChild(c);
   });
   const a=document.createElement("div");a.className="add-card";
@@ -732,6 +768,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("btn-signout").addEventListener("click",()=>auth.signOut().then(()=>{trips=[];showPage(null);document.getElementById("login-page").style.display="flex";}));
   document.getElementById("btn-go-home").addEventListener("click",()=>{cur=null;selEvIdx=null;renderCards();showPage("home");});
   document.getElementById("btn-open-trip-modal").addEventListener("click",()=>document.getElementById("trip-modal").classList.add("open"));
+  document.getElementById("btn-close-trip-edit-modal").addEventListener("click",()=>document.getElementById("trip-edit-modal").classList.remove("open"));
+  document.getElementById("btn-save-trip-edit").addEventListener("click",saveTripEdit);
   document.getElementById("btn-close-trip-modal").addEventListener("click",()=>document.getElementById("trip-modal").classList.remove("open"));
   document.getElementById("btn-add-trip").addEventListener("click",()=>{
     const dest=document.getElementById("tm-dest").value.trim();if(!dest)return;
