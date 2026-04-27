@@ -682,9 +682,9 @@ function saveEventModal(){
 }
 
 /* ── 드롭으로 일정 추가 ── */
-function addEventFromDrop(placeId, dateKey, time=""){
+function addEventFromDrop(placeId,dateKey){
   const pl=cur.places.find(p=>p.id===placeId);if(!pl)return;
-  cur.events.push({id:uidGen(),name:pl.name,date:dateKey==="미정"?"":dateKey,time,placeId:pl.id,memo:"",link:""});
+  cur.events.push({id:uidGen(),name:pl.name,date:dateKey==="미정"?"":dateKey,time:"",placeId:pl.id,memo:"",link:""});
   saveToFirestore();renderTimeline();
   if(selectedDayHeader)showDayView(selectedDayHeader);
   if(gmap)focusMapOnPlace(pl);
@@ -698,7 +698,7 @@ function makeDropZone(dateKey){
   dz.addEventListener("drop",e=>{
     e.preventDefault();dz.classList.remove("drag-over");
     const pid=parseFloat(e.dataTransfer.getData("placeId"));
-    if(pid) addEventFromDrop(pid, dateKey, calcDropTime(dateKey, beforeIdx));
+    if(pid)addEventFromDrop(pid,dateKey);
   });
   return dz;
 }
@@ -734,7 +734,7 @@ function renderTimeline(){
     g.appendChild(makeDropZone(day));
 
     items.sort((a,b)=>(a.ev.time||"").localeCompare(b.ev.time||""));
-    items.forEach(({ev,i}, idx)=>{
+    items.forEach(({ev,i})=>{
       const pl=ev.placeId?cur.places.find(p=>p.id===ev.placeId):null;
       const row=document.createElement("div");row.className="tl-item"+(selEvIdx===i?" sel":"");
       row.addEventListener("click",()=>{selEvIdx=i;selectedDayHeader=null;renderTimeline();showEventDetail(i);if(pl)focusMapOnPlace(pl);});
@@ -781,10 +781,7 @@ function showDayView(dateKey){
   const label=dateKey==="미정"?"날짜 미정":"Day "+(dayNum+1)+"  ·  "+fmtDate(dateKey);
   document.getElementById("detail-panel-title").textContent=label;
 
-  const items=(cur.events||[])
-    .map((ev,i)=>({ev,i}))
-    .filter(({ev})=>(ev.date||"미정")===dateKey)
-    .sort((a,b)=>(a.ev.time||"").localeCompare(b.ev.time||""));
+  const items=(cur.events||[]).map((ev,i)=>({ev,i})).filter(({ev})=>(ev.date||"미정")===dateKey).sort((a,b)=>(a.ev.time||"").localeCompare(b.ev.time||""));
 
   dayView.innerHTML="";
 
@@ -815,7 +812,7 @@ function showDayView(dateKey){
       // 각 행 사이 드롭존
       const dzRow=document.createElement("tr");
       const dzTd=document.createElement("td");dzTd.colSpan=3;dzTd.style.padding="0";
-      dzTd.appendChild(makeDropZone(dateKey, idx+1));
+      dzTd.appendChild(makeDropZone(dateKey));
       dzRow.appendChild(dzTd);tbody.appendChild(dzRow);
     });
   }
