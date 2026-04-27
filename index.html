@@ -291,6 +291,11 @@ const auth = firebase.auth();
 const db   = firebase.firestore();
 const provider = new firebase.auth.GoogleAuthProvider();
 
+// 5초 안에 onAuthStateChanged 응답 없으면 오류 표시
+const authTimeout = setTimeout(() => {
+  setLoadingMsg("❌ Firebase Auth 응답 없음", "authDomain 설정 또는 네트워크 문제일 수 있어요");
+}, 5000);
+
 /* ── 상수 ── */
 const CAT_ICON  = {숙소:"🏨",맛집:"🍜",디저트:"🍰",관광지:"🗺️",카페:"☕",쇼핑:"🛍️",이동:"🚆",기타:"📌"};
 const CAT_COLOR = {숙소:"#7F77DD",맛집:"#D85A30",디저트:"#D4537E",관광지:"#1D9E75",카페:"#BA7517",쇼핑:"#378ADD",이동:"#888",기타:"#888"};
@@ -355,6 +360,7 @@ async function loadFromFirestore() {
 
 /* ── Auth 상태 감지 ── */
   auth.onAuthStateChanged(async user => {
+    clearTimeout(authTimeout);
     setLoadingMsg("인증 상태 확인 중...");
     if(user) {
       curUser = user;
