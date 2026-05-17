@@ -291,6 +291,23 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
   </div>
 </div>
 
+<!-- SHARE MODAL -->
+<div class="modal-bg" id="share-modal">
+  <div class="modal">
+    <h3>👥 앱 공유</h3>
+    <p style="font-size:13px;color:#666;margin-bottom:12px;line-height:1.6">공유할 Google 계정 이메일을 추가하면<br>해당 계정으로 로그인 시 내 데이터를 함께 볼 수 있어요.</p>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <input id="share-email-input" type="email" placeholder="example@gmail.com" style="flex:1;border:0.5px solid rgba(0,0,0,.22);border-radius:8px;padding:7px 9px;font-size:13px;font-family:inherit">
+      <button class="btn btn-primary btn-sm" id="btn-share-add">추가</button>
+    </div>
+    <div id="share-list" style="margin-bottom:12px"></div>
+    <div id="share-status" style="font-size:12px;color:#1D9E75;display:none;margin-bottom:8px"></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-close-share-modal">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- TRIP ADD MODAL -->
 <div class="modal-bg" id="trip-modal">
   <div class="modal">
@@ -433,9 +450,29 @@ const setSaving=v=>{
 
 /* ── Firestore ── */
 async function saveToFirestore(){
-  if(!curUser)return;setSaving(true);
-  try{await db.doc(`users/${curUser.uid}/data/trips`).set({trips});setStatus("✅ 저장 완료");}
-  catch(e){setStatus("❌ 저장 실패",e.message);}
+  if(!curUser)return; setSaving(true);
+  try{
+    if(cur?._sharedFrom){
+      // 공유받은 여행 — 원본 소유자 데이터에 저장
+      const ownerUid=cur._sharedFrom;
+      const tSnap=await db.doc(`users/${ownerUid}/data/trips`).get();
+      if(tSnap.exists){
+        const ownerTrips=tSnap.data().trips||[];
+        const idx=ownerTrips.findIndex(t=>String(t.id)===String(cur.id));
+        if(idx>=0){
+          // _sharedFrom 등 내부 필드 제거 후 저장
+          const clean={...cur}; delete clean._sharedFrom; delete clean._sharedTripId;
+          ownerTrips[idx]=clean;
+          await db.doc(`users/${ownerUid}/data/trips`).set({trips:ownerTrips});
+        }
+      }
+    } else {
+      // 본인 여행
+      const cleanTrips=trips.filter(t=>!t._sharedFrom).map(t=>{const c={...t};delete c._sharedFrom;delete c._sharedTripId;return c;});
+      await db.doc(`users/${curUser.uid}/data/trips`).set({trips:cleanTrips});
+    }
+    setStatus("✅ 저장 완료");
+  }catch(e){setStatus("❌ 저장 실패",e.message);}
   setSaving(false);
 }
 async function loadFromFirestore(){
@@ -460,7 +497,11 @@ auth.onAuthStateChanged(async user=>{
     curUser=user;
     document.getElementById("user-avatar").src=user.photoURL||"";
     document.getElementById("user-name").textContent=user.displayName||"";
-    await loadFromFirestore();renderCards();
+    // 이메일 → UID 인덱스 저장 (공유 기능용)
+    try{await db.doc(`userIndex/${user.email.replace(/\./g,"_")}`).set({uid:user.uid,email:user.email});}catch(e){}
+    await loadFromFirestore();
+    await loadSharedTrips();
+    renderCards();
     const hash=location.hash;
     if(hash.startsWith("#trip-")){const sid=parseFloat(hash.replace("#trip-",""));const st=trips.find(t=>t.id===sid);if(st)openTrip(st.id);else showPage("home");}
     else showPage("home");
@@ -605,7 +646,99 @@ function clearDoneItems(){
   saveToFirestore();renderChecklist();
 }
 
-/* ── 핀 아이콘 ── */
+/* ── 공유 ── */
+let sharedEmails=[];
+
+async function loadSharedEmails(){
+  try{
+    const snap=await db.doc(`users/${curUser.uid}/shared/access`).get();
+    sharedEmails=snap.exists?(snap.data().emails||[]):[];
+  }catch(e){sharedEmails=[];}
+}
+
+async function saveSharedEmails(){
+  await db.doc(`users/${curUser.uid}/shared/access`).set({emails:sharedEmails});
+}
+
+function renderShareList(){
+  const list=document.getElementById("share-list");
+  if(!sharedEmails.length){
+    list.innerHTML="<div style='font-size:12px;color:#ccc;text-align:center;padding:8px 0'>공유된 계정이 없어요</div>";
+    return;
+  }
+  list.innerHTML="";
+  sharedEmails.forEach(email=>{
+    const row=document.createElement("div");
+    row.style.cssText="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid rgba(0,0,0,.06);font-size:13px";
+    row.innerHTML=`<span style="color:#1a1a1a">${email}</span><button class="btn btn-xs btn-danger">제거</button>`;
+    row.querySelector(".btn-danger").addEventListener("click",async()=>{
+      sharedEmails=sharedEmails.filter(e=>e!==email);
+      await saveSharedEmails();
+      renderShareList();
+    });
+    list.appendChild(row);
+  });
+}
+
+async function openShareModal(){
+  await loadSharedEmails();
+  renderShareList();
+  document.getElementById("share-email-input").value="";
+  document.getElementById("share-status").style.display="none";
+  document.getElementById("share-modal").classList.add("open");
+}
+
+async function addSharedEmail(){
+  const input=document.getElementById("share-email-input");
+  const email=input.value.trim().toLowerCase();
+  const status=document.getElementById("share-status");
+  if(!email||!email.includes("@")){status.textContent="올바른 이메일을 입력해주세요";status.style.color="#c00";status.style.display="block";return;}
+  if(sharedEmails.includes(email)){status.textContent="이미 추가된 이메일이에요";status.style.color="#c00";status.style.display="block";return;}
+  if(email===curUser.email){status.textContent="본인 이메일은 추가할 수 없어요";status.style.color="#c00";status.style.display="block";return;}
+
+  // 상대방 UID 조회
+  status.textContent="확인 중...";status.style.color="#888";status.style.display="block";
+  const emailKey=email.replace(/\./g,"_");
+  const idxSnap=await db.doc(`userIndex/${emailKey}`).get().catch(()=>null);
+  if(!idxSnap||!idxSnap.exists){
+    status.textContent="해당 이메일로 가입된 계정을 찾을 수 없어요. 상대방이 먼저 한 번 로그인해야 해요.";
+    status.style.color="#c00";status.style.display="block";return;
+  }
+  const theirUid=idxSnap.data().uid;
+
+  // 내 shared/access에 이메일 추가
+  sharedEmails.push(email);
+  await saveSharedEmails();
+
+  // 상대방 shared/from에 내 UID 추가
+  const fromRef=db.doc(`users/${theirUid}/shared/from`);
+  const fromSnap=await fromRef.get().catch(()=>null);
+  const existingUids=fromSnap?.exists?(fromSnap.data().uids||[]):[];
+  if(!existingUids.includes(curUser.uid)){
+    await fromRef.set({uids:[...existingUids,curUser.uid]});
+  }
+
+  renderShareList();
+  input.value="";
+  status.textContent=`✓ ${email} 추가됨`;status.style.color="#1D9E75";status.style.display="block";
+  setTimeout(()=>status.style.display="none",3000);
+}
+
+/* ── 공유받은 데이터 로드 ── */
+async function loadSharedTrips(){
+  try{
+    const fromSnap=await db.doc(`users/${curUser.uid}/shared/from`).get();
+    if(!fromSnap.exists)return;
+    const ownerUids=fromSnap.data().uids||[];
+    for(const uid of ownerUids){
+      const tSnap=await db.doc(`users/${uid}/data/trips`).get().catch(()=>null);
+      if(tSnap?.exists){
+        const ownerTrips=(tSnap.data().trips||[]).map(t=>({...t,_sharedFrom:uid}));
+        trips=[...trips,...ownerTrips];
+      }
+    }
+  }catch(e){console.log("공유 데이터 로드 실패",e);}
+}
 function makePinIcon(color, big){
   const s=big?14:10, sw=big?3:2;
   return {path:google.maps.SymbolPath.CIRCLE, scale:s, fillColor:color, fillOpacity:1, strokeColor:"#fff", strokeWeight:sw};
@@ -707,10 +840,22 @@ function renderCards(){
   const g=document.getElementById("cards-grid");g.innerHTML="";
   trips.forEach(t=>{
     const s=t.start?fmtDate(t.start):"",e=t.end?fmtDate(t.end):"";
-    const c=document.createElement("div");c.className="trip-card";c.onclick=()=>openTrip(t.id);
-    c.innerHTML=`<div class="tc-emoji">${t.emoji}</div><div class="tc-name">${t.dest}</div><div class="tc-date">${s&&e?s+" – "+e:s||e||"날짜 미정"}</div><div class="tc-footer"><button class="btn btn-sm edit-btn">편집</button><button class="btn btn-danger btn-sm del-btn">삭제</button></div>`;
-    c.querySelector(".edit-btn").addEventListener("click",e2=>{e2.stopPropagation();openTripEditModal(t.id);});
-    c.querySelector(".del-btn").addEventListener("click",e2=>{e2.stopPropagation();trips=trips.filter(x=>x.id!==t.id);saveToFirestore();renderCards();});
+    const isShared=!!t._sharedFrom;
+    const c=document.createElement("div");c.className="trip-card";c.onclick=()=>openTrip(t.id,t._sharedFrom);
+    c.innerHTML=`
+      <div class="tc-emoji">${t.emoji}</div>
+      <div class="tc-name">${t.dest}${isShared?` <span style="font-size:10px;color:#4285F4;background:#e8f0fe;padding:1px 5px;border-radius:4px;vertical-align:middle">공유됨</span>`:""}</div>
+      <div class="tc-date">${s&&e?s+" – "+e:s||e||"날짜 미정"}</div>
+      <div class="tc-footer">
+        ${!isShared?`<button class="btn btn-xs share-btn">👥 공유</button>`:""}
+        ${!isShared?`<button class="btn btn-sm edit-btn">편집</button>`:""}
+        ${!isShared?`<button class="btn btn-danger btn-sm del-btn">삭제</button>`:`<span style="font-size:11px;color:#aaa">읽기/쓰기 가능</span>`}
+      </div>`;
+    if(!isShared){
+      c.querySelector(".share-btn").addEventListener("click",e2=>{e2.stopPropagation();openShareModal(t.id);});
+      c.querySelector(".edit-btn").addEventListener("click",e2=>{e2.stopPropagation();openTripEditModal(t.id);});
+      c.querySelector(".del-btn").addEventListener("click",e2=>{e2.stopPropagation();trips=trips.filter(x=>x.id!==t.id);saveToFirestore();renderCards();});
+    }
     g.appendChild(c);
   });
   const a=document.createElement("div");a.className="add-card";
@@ -719,8 +864,9 @@ function renderCards(){
   g.appendChild(a);
 }
 
-function openTrip(id){
-  cur=trips.find(t=>t.id===id);selEvIdx=null;activeAddr="";allMarkers=[];
+function openTrip(id, sharedFromUid=null){
+  cur=trips.find(t=>t.id===id&&(sharedFromUid?t._sharedFrom===sharedFromUid:!t._sharedFrom));
+  if(!cur)return;selEvIdx=null;activeAddr="";allMarkers=[];
   editingPlaceId=null;editingEvIdx=null;pendingPlace=null;placesTab="cat";selectedDateFilter=null;selectedDayHeader=null;
   if(!cur.checklist)cur.checklist=[];
   if(!cur.note)cur.note="";
@@ -957,6 +1103,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(isMobile)auth.signInWithRedirect(provider).catch(e=>{loginErr.textContent="오류: "+e.message;loginErr.style.display="block";});
     else auth.signInWithPopup(provider).catch(e=>{loginErr.textContent="오류: "+e.message;loginErr.style.display="block";});
   });
+  document.getElementById("btn-close-share-modal").addEventListener("click",()=>document.getElementById("share-modal").classList.remove("open"));
+  document.getElementById("btn-share-add").addEventListener("click",addSharedEmail);
+  document.getElementById("share-email-input").addEventListener("keydown",e=>{if(e.key==="Enter")addSharedEmail();});
   document.getElementById("btn-signout").addEventListener("click",()=>auth.signOut().then(()=>{trips=[];showPage(null);document.getElementById("login-page").style.display="flex";}));
   document.getElementById("btn-go-home").addEventListener("click",()=>{cur=null;selEvIdx=null;renderCards();showPage("home");});
   document.getElementById("btn-open-trip-modal").addEventListener("click",()=>document.getElementById("trip-modal").classList.add("open"));
