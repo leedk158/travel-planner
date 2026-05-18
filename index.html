@@ -415,6 +415,12 @@ try{
 }catch(e){setStatus("❌ Firebase 초기화 실패",e.message);}
 
 const auth=firebase.auth(), db=firebase.firestore(), provider=new firebase.auth.GoogleAuthProvider();
+
+// 리디렉트 결과 먼저 처리
+auth.getRedirectResult().then(result=>{
+  if(result?.user) setStatus("리디렉트 로그인 성공",result.user.email);
+}).catch(e=>setStatus("리디렉트 결과 오류",e.message));
+
 const authTimer=setTimeout(()=>setStatus("❌ Auth 응답 없음 (10초 초과)"),10000);
 
 const CAT_ICON={숙소:"🏨",맛집:"🍜",디저트:"🍰",관광지:"🗺️",카페:"☕",쇼핑:"🛍️",교통:"🚆",기타:"📌"};
@@ -1102,8 +1108,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const loginErr=document.getElementById("login-error");
     if(isMobile)auth.signInWithRedirect(provider).catch(e=>{loginErr.textContent="오류: "+e.message;loginErr.style.display="block";});
     else auth.signInWithPopup(provider).catch(e=>{loginErr.textContent="오류: "+e.message;loginErr.style.display="block";});
-  });
-  document.getElementById("btn-close-share-modal").addEventListener("click",()=>document.getElementById("share-modal").classList.remove("open"));
+  });  document.getElementById("btn-close-share-modal").addEventListener("click",()=>document.getElementById("share-modal").classList.remove("open"));
   document.getElementById("btn-share-add").addEventListener("click",addSharedEmail);
   document.getElementById("share-email-input").addEventListener("keydown",e=>{if(e.key==="Enter")addSharedEmail();});
   document.getElementById("btn-signout").addEventListener("click",()=>auth.signOut().then(()=>{trips=[];showPage(null);document.getElementById("login-page").style.display="flex";}));
