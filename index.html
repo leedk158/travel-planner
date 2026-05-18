@@ -1103,11 +1103,15 @@ function deleteEvent(){
 /* ── 이벤트 연결 ── */
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("btn-google-login").addEventListener("click",()=>{
-    const isMobile=/Android|iPhone|iPad/i.test(navigator.userAgent);
-    setStatus("로그인 시도 중...",isMobile?"리디렉트":"팝업");
+    setStatus("로그인 시도 중...", "팝업 방식");
     const loginErr=document.getElementById("login-error");
-    if(isMobile)auth.signInWithRedirect(provider).catch(e=>{loginErr.textContent="오류: "+e.message;loginErr.style.display="block";});
-    else auth.signInWithPopup(provider).catch(e=>{loginErr.textContent="오류: "+e.message;loginErr.style.display="block";});
+    auth.signInWithPopup(provider).catch(e=>{
+      setStatus("팝업 실패, 리디렉트로 재시도...");
+      auth.signInWithRedirect(provider).catch(e2=>{
+        loginErr.textContent="오류: "+e2.message;
+        loginErr.style.display="block";
+      });
+    });
   });  document.getElementById("btn-close-share-modal").addEventListener("click",()=>document.getElementById("share-modal").classList.remove("open"));
   document.getElementById("btn-share-add").addEventListener("click",addSharedEmail);
   document.getElementById("share-email-input").addEventListener("keydown",e=>{if(e.key==="Enter")addSharedEmail();});
