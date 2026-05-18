@@ -498,7 +498,7 @@ async function loadFromFirestore(){
 
 /* ── Auth ── */
 auth.onAuthStateChanged(async user=>{
-  clearTimeout(authTimer);setStatus("인증 상태 확인됨");
+  clearTimeout(authTimer);    setStatus("인증 상태 확인됨", user ? `UID: ${user.uid} / 이메일: ${user.email}` : "로그아웃");
   if(user){
     curUser=user;
     document.getElementById("user-avatar").src=user.photoURL||"";
