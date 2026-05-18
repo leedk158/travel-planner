@@ -694,7 +694,36 @@ async function openShareModal(){
   document.getElementById("share-modal").classList.add("open");
 }
 
-async function addSharedEmail(){
+function renderShareList(){
+  const list=document.getElementById("share-list");
+  if(!sharedEmails.length){
+    list.innerHTML="<div style='font-size:12px;color:#ccc;text-align:center;padding:8px 0'>공유된 계정이 없어요</div>";
+    return;
+  }
+  list.innerHTML="";
+  sharedEmails.forEach(email=>{
+    const row=document.createElement("div");
+    row.style.cssText="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid rgba(0,0,0,.06);font-size:13px";
+    row.innerHTML=`<span>${email}</span><button class="btn btn-xs btn-danger">제거</button>`;
+    row.querySelector(".btn-danger").addEventListener("click",async()=>{
+      sharedEmails=sharedEmails.filter(e=>e!==email);
+      await saveTripSharedEmails(currentShareTripId, sharedEmails);
+      const emailKey=email.replace(/\./g,"_");
+      const idxSnap=await db.doc(`userIndex/${emailKey}`).get().catch(()=>null);
+      if(idxSnap?.exists){
+        const theirUid=idxSnap.data().uid;
+        const swRef=db.doc(`users/${theirUid}/sharedWith`);
+        const swSnap=await swRef.get().catch(()=>null);
+        if(swSnap?.exists){
+          const updated=(swSnap.data().list||[]).filter(x=>!(x.ownerUid===curUser.uid&&String(x.tripId)===String(currentShareTripId)));
+          await swRef.set({list:updated});
+        }
+      }
+      renderShareList();
+    });
+    list.appendChild(row);
+  });
+}
   const input=document.getElementById("share-email-input");
   const email=input.value.trim().toLowerCase();
   const status=document.getElementById("share-status");
