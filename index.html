@@ -372,6 +372,18 @@ body{font-family:system-ui,sans-serif;background:#f7f7f5;color:#1a1a1a;min-heigh
   </div>
 </div>
 
+<!-- CONFIRM MODAL -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal">
+    <h3 id="confirm-title">확인</h3>
+    <p id="confirm-msg" style="font-size:13px;color:#666;margin-bottom:4px;line-height:1.6"></p>
+    <div class="modal-actions">
+      <button class="btn" id="btn-confirm-cancel">취소</button>
+      <button class="btn btn-danger" id="btn-confirm-ok">삭제</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function setStatus(msg,detail){
   const m=document.getElementById("loading-msg"),d=document.getElementById("loading-detail"),b=document.getElementById("status-bar");
@@ -417,6 +429,7 @@ let trips=[],curUser=null,cur=null,selEvIdx=null,editingPlaceId=null,editingEvId
 let activeAddr="",activeMarker=null,allMarkers=[],gmap=null,geocoder=null,placesService=null,pendingPlace=null;
 let placeDropdownOpen=false,placesTab="cat",selectedDateFilter=null,selectedDayHeader=null;
 let sharedEmails=[],currentShareTripId=null;
+let confirmCallback=null;
 
 const uidGen=()=>Date.now()+Math.random();
 const fmtDate=d=>{if(!d)return"";const[y,m,day]=d.split("-");return`${y}년 ${m}월 ${day}일`;};
@@ -439,9 +452,17 @@ const setSaving=v=>{
   document.getElementById("saving-badge2").style.display=v?"":"none";
 };
 
+/* ── 확인 모달 ── */
+function showConfirm(title,msg,onOk){
+  document.getElementById("confirm-title").textContent=title;
+  document.getElementById("confirm-msg").textContent=msg;
+  confirmCallback=onOk;
+  document.getElementById("confirm-modal").classList.add("open");
+}
+
 /* ── Firestore 저장 ── */
 async function saveToFirestore(){
-  if(!curUser)return; setSaving(true);
+  if(!curUser)return;setSaving(true);
   try{
     if(cur?._sharedFrom){
       const ownerSnap=await db.doc(`users/${cur._sharedFrom}/data/trips`).get();
@@ -454,7 +475,7 @@ async function saveToFirestore(){
           await db.doc(`users/${cur._sharedFrom}/data/trips`).set({trips:ownerTrips});
         }
       }
-    } else {
+    }else{
       const myTrips=trips.filter(t=>!t._sharedFrom).map(t=>{const c={...t};delete c._sharedFrom;delete c._sharedTripId;return c;});
       await db.doc(`users/${curUser.uid}/data/trips`).set({trips:myTrips});
     }
@@ -473,17 +494,16 @@ async function loadFromFirestore(){
       trips.forEach(t=>(t.places||[]).forEach(p=>{if(p.cat==="이동"){p.cat="교통";migrated=true;}}));
       if(migrated)await db.doc(`users/${curUser.uid}/data/trips`).set({trips});
       setStatus("✅ 로드 완료",`여행 ${trips.length}개`);
-    } else setStatus("저장된 데이터 없음");
+    }else setStatus("저장된 데이터 없음");
   }catch(e){setStatus("❌ 로드 실패",e.message);}
 }
 
 async function loadSharedTrips(){
   try{
-    // 경로: users/{uid}/sharedWith/data
     const snap=await db.doc(`users/${curUser.uid}/sharedWith/data`).get();
     if(!snap.exists)return;
     const list=snap.data().list||[];
-    for(const {ownerUid,tripId} of list){
+    for(const{ownerUid,tripId}of list){
       const tSnap=await db.doc(`users/${ownerUid}/data/trips`).get().catch(()=>null);
       if(!tSnap?.exists)continue;
       const t=(tSnap.data().trips||[]).find(x=>String(x.id)===String(tripId));
@@ -495,7 +515,7 @@ async function loadSharedTrips(){
 /* ── Auth ── */
 auth.onAuthStateChanged(async user=>{
   clearTimeout(authTimer);
-  setStatus("인증 상태 확인됨", user?`${user.email}`:"로그아웃");
+  setStatus("인증 상태 확인됨",user?`${user.email}`:"로그아웃");
   if(user){
     curUser=user;
     document.getElementById("user-avatar").src=user.photoURL||"";
@@ -538,22 +558,26 @@ function renderShareList(){
     row.style.cssText="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid rgba(0,0,0,.06);font-size:13px";
     row.innerHTML=`<span>${email}</span><button class="btn btn-xs btn-danger">제거</button>`;
     row.querySelector(".btn-danger").addEventListener("click",async()=>{
+      // 1. 즉시 화면에서 제거
       sharedEmails=sharedEmails.filter(e=>e!==email);
       setTripSharedEmails(currentShareTripId,sharedEmails);
+      renderShareList();
+
+      // 2. 내 trip 데이터에서 저장
       await saveToFirestore();
+
+      // 3. 상대방 sharedWith/data에서 제거
       const emailKey=email.replace(/\./g,"_");
       const idxSnap=await db.doc(`userIndex/${emailKey}`).get().catch(()=>null);
       if(idxSnap?.exists){
         const theirUid=idxSnap.data().uid;
-        // 경로: users/{uid}/sharedWith/data
         const swRef=db.doc(`users/${theirUid}/sharedWith/data`);
         const swSnap=await swRef.get().catch(()=>null);
         if(swSnap?.exists){
           const updated=(swSnap.data().list||[]).filter(x=>!(x.ownerUid===curUser.uid&&String(x.tripId)===String(currentShareTripId)));
-          await swRef.set({list:updated});
+          await swRef.set({list:updated}).catch(e=>console.log("sharedWith 제거 실패",e));
         }
       }
-      renderShareList();
     });
     list.appendChild(row);
   });
@@ -590,9 +614,7 @@ async function addSharedEmail(){
     if(!idxSnap.exists)return show("해당 이메일 계정을 찾을 수 없어요. 상대방이 먼저 한 번 로그인해야 해요.","#c00");
     theirUid=idxSnap.data().uid;
     show("uid 확인됨: "+theirUid);
-  }catch(e){
-    return show("userIndex 읽기 실패: "+e.message,"#c00");
-  }
+  }catch(e){return show("userIndex 읽기 실패: "+e.message,"#c00");}
 
   // 2. 내 trip에 sharedEmails 저장
   try{
@@ -601,6 +623,9 @@ async function addSharedEmail(){
     await saveToFirestore();
     show("trip 저장 완료");
   }catch(e){
+    // 롤백
+    sharedEmails=sharedEmails.filter(x=>x!==email);
+    setTripSharedEmails(currentShareTripId,sharedEmails);
     return show("trip 저장 실패: "+e.message,"#c00");
   }
 
@@ -612,6 +637,10 @@ async function addSharedEmail(){
     if(swSnap.exists)existing=swSnap.data().list||[];
     show("sharedWith 읽기 완료, 기존 항목: "+existing.length+"개");
   }catch(e){
+    // 롤백
+    sharedEmails=sharedEmails.filter(x=>x!==email);
+    setTripSharedEmails(currentShareTripId,sharedEmails);
+    await saveToFirestore();
     return show("sharedWith 읽기 실패: "+e.message,"#c00");
   }
 
@@ -623,6 +652,10 @@ async function addSharedEmail(){
     show("✓ "+email+" 추가됨","#1D9E75");
     setTimeout(()=>status.style.display="none",3000);
   }catch(e){
+    // 롤백
+    sharedEmails=sharedEmails.filter(x=>x!==email);
+    setTripSharedEmails(currentShareTripId,sharedEmails);
+    await saveToFirestore();
     return show("sharedWith 쓰기 실패: "+e.message,"#c00");
   }
 
@@ -748,7 +781,14 @@ function renderCards(){
     if(!isShared){
       c.querySelector(".share-btn").addEventListener("click",e2=>{e2.stopPropagation();openShareModal(t.id);});
       c.querySelector(".edit-btn").addEventListener("click",e2=>{e2.stopPropagation();openTripEditModal(t.id);});
-      c.querySelector(".del-btn").addEventListener("click",e2=>{e2.stopPropagation();trips=trips.filter(x=>x.id!==t.id);saveToFirestore();renderCards();});
+      c.querySelector(".del-btn").addEventListener("click",e2=>{
+        e2.stopPropagation();
+        showConfirm("여행 삭제",`'${t.dest}' 여행을 삭제할까요? 이 작업은 되돌릴 수 없어요.`,async()=>{
+          trips=trips.filter(x=>x.id!==t.id);
+          await saveToFirestore();
+          renderCards();
+        });
+      });
     }
     g.appendChild(c);
   });
@@ -1116,6 +1156,15 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("btn-close-share-modal").addEventListener("click",()=>document.getElementById("share-modal").classList.remove("open"));
   document.getElementById("btn-share-add").addEventListener("click",addSharedEmail);
   document.getElementById("share-email-input").addEventListener("keydown",e=>{if(e.key==="Enter")addSharedEmail();});
+  document.getElementById("btn-confirm-cancel").addEventListener("click",()=>{
+    document.getElementById("confirm-modal").classList.remove("open");
+    confirmCallback=null;
+  });
+  document.getElementById("btn-confirm-ok").addEventListener("click",()=>{
+    document.getElementById("confirm-modal").classList.remove("open");
+    if(confirmCallback)confirmCallback();
+    confirmCallback=null;
+  });
 });
 </script>
 </body>
