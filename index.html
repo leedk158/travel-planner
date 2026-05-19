@@ -399,7 +399,6 @@ try{
 
 const auth=firebase.auth(), db=firebase.firestore(), provider=new firebase.auth.GoogleAuthProvider();
 
-// 리디렉트 결과 처리
 auth.getRedirectResult().then(r=>{
   if(r?.user) setStatus("리디렉트 로그인 성공");
 }).catch(e=>console.log("리디렉트 결과:",e.message));
@@ -445,7 +444,6 @@ async function saveToFirestore(){
   if(!curUser)return; setSaving(true);
   try{
     if(cur?._sharedFrom){
-      // 공유받은 여행 — 원본 소유자에게 저장
       const ownerSnap=await db.doc(`users/${cur._sharedFrom}/data/trips`).get();
       if(ownerSnap.exists){
         const ownerTrips=ownerSnap.data().trips||[];
@@ -471,7 +469,6 @@ async function loadFromFirestore(){
     const snap=await db.doc(`users/${curUser.uid}/data/trips`).get();
     if(snap.exists){
       trips=snap.data().trips||[];
-      // 이동→교통 마이그레이션
       let migrated=false;
       trips.forEach(t=>(t.places||[]).forEach(p=>{if(p.cat==="이동"){p.cat="교통";migrated=true;}}));
       if(migrated)await db.doc(`users/${curUser.uid}/data/trips`).set({trips});
@@ -502,7 +499,6 @@ auth.onAuthStateChanged(async user=>{
     curUser=user;
     document.getElementById("user-avatar").src=user.photoURL||"";
     document.getElementById("user-name").textContent=user.displayName||"";
-    // userIndex 등록
     try{await db.doc(`userIndex/${user.email.replace(/\./g,"_")}`).set({uid:user.uid,email:user.email});}
     catch(e){console.log("userIndex 저장 실패",e.message);}
     try{await loadFromFirestore();}catch(e){console.log("로드 실패",e);}
@@ -544,7 +540,6 @@ function renderShareList(){
       sharedEmails=sharedEmails.filter(e=>e!==email);
       setTripSharedEmails(currentShareTripId,sharedEmails);
       await saveToFirestore();
-      // 상대방 sharedWith에서 제거
       const emailKey=email.replace(/\./g,"_");
       const idxSnap=await db.doc(`userIndex/${emailKey}`).get().catch(()=>null);
       if(idxSnap?.exists){
@@ -577,29 +572,60 @@ async function addSharedEmail(){
   const input=document.getElementById("share-email-input");
   const email=input.value.trim().toLowerCase();
   const status=document.getElementById("share-status");
-  const show=(msg,color)=>{status.textContent=msg;status.style.color=color;status.style.display="block";};
+  const show=(msg,color)=>{status.textContent=msg;status.style.color=color||"#888";status.style.display="block";};
+
   if(!email||!email.includes("@"))return show("올바른 이메일을 입력해주세요","#c00");
   if(sharedEmails.includes(email))return show("이미 추가된 이메일이에요","#c00");
   if(email===curUser.email)return show("본인 이메일은 추가할 수 없어요","#c00");
-  show("확인 중...","#888");
+
+  show("확인 중...");
+
+  // 1. userIndex에서 uid 조회
   const emailKey=email.replace(/\./g,"_");
-  const idxSnap=await db.doc(`userIndex/${emailKey}`).get().catch(()=>null);
-  if(!idxSnap?.exists)return show("해당 이메일 계정을 찾을 수 없어요. 상대방이 먼저 한 번 로그인해야 해요.","#c00");
-  const theirUid=idxSnap.data().uid;
-  // 여행 데이터에 sharedEmails 저장
-  sharedEmails.push(email);
-  setTripSharedEmails(currentShareTripId,sharedEmails);
-  await saveToFirestore();
-  // 상대방 sharedWith에 추가
+  let theirUid;
+  try{
+    const idxSnap=await db.doc(`userIndex/${emailKey}`).get();
+    if(!idxSnap.exists)return show("해당 이메일 계정을 찾을 수 없어요. 상대방이 먼저 한 번 로그인해야 해요.","#c00");
+    theirUid=idxSnap.data().uid;
+    show("uid 확인됨: "+theirUid);
+  }catch(e){
+    return show("userIndex 읽기 실패: "+e.message,"#c00");
+  }
+
+  // 2. 내 trip에 sharedEmails 저장
+  try{
+    sharedEmails.push(email);
+    setTripSharedEmails(currentShareTripId,sharedEmails);
+    await saveToFirestore();
+    show("trip 저장 완료");
+  }catch(e){
+    return show("trip 저장 실패: "+e.message,"#c00");
+  }
+
+  // 3. 상대방 sharedWith 읽기
   const swRef=db.doc(`users/${theirUid}/sharedWith`);
-  const swSnap=await swRef.get().catch(()=>null);
-  const existing=swSnap?.exists?(swSnap.data().list||[]):[];
-  if(!existing.some(x=>x.ownerUid===curUser.uid&&String(x.tripId)===String(currentShareTripId)))
-    await swRef.set({list:[...existing,{ownerUid:curUser.uid,tripId:String(currentShareTripId)}]});
+  let existing=[];
+  try{
+    const swSnap=await swRef.get();
+    if(swSnap.exists)existing=swSnap.data().list||[];
+    show("sharedWith 읽기 완료, 기존 항목: "+existing.length+"개");
+  }catch(e){
+    return show("sharedWith 읽기 실패: "+e.message,"#c00");
+  }
+
+  // 4. 상대방 sharedWith 쓰기
+  try{
+    if(!existing.some(x=>x.ownerUid===curUser.uid&&String(x.tripId)===String(currentShareTripId))){
+      await swRef.set({list:[...existing,{ownerUid:curUser.uid,tripId:String(currentShareTripId)}]});
+    }
+    show("✓ "+email+" 추가됨","#1D9E75");
+    setTimeout(()=>status.style.display="none",3000);
+  }catch(e){
+    return show("sharedWith 쓰기 실패: "+e.message,"#c00");
+  }
+
   renderShareList();
   input.value="";
-  show(`✓ ${email} 추가됨`,"#1D9E75");
-  setTimeout(()=>status.style.display="none",3000);
 }
 
 /* ── 지도 ── */
