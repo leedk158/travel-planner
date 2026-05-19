@@ -479,7 +479,8 @@ async function loadFromFirestore(){
 
 async function loadSharedTrips(){
   try{
-    const snap=await db.doc(`users/${curUser.uid}/sharedWith`).get();
+    // 경로: users/{uid}/sharedWith/data
+    const snap=await db.doc(`users/${curUser.uid}/sharedWith/data`).get();
     if(!snap.exists)return;
     const list=snap.data().list||[];
     for(const {ownerUid,tripId} of list){
@@ -544,7 +545,8 @@ function renderShareList(){
       const idxSnap=await db.doc(`userIndex/${emailKey}`).get().catch(()=>null);
       if(idxSnap?.exists){
         const theirUid=idxSnap.data().uid;
-        const swRef=db.doc(`users/${theirUid}/sharedWith`);
+        // 경로: users/{uid}/sharedWith/data
+        const swRef=db.doc(`users/${theirUid}/sharedWith/data`);
         const swSnap=await swRef.get().catch(()=>null);
         if(swSnap?.exists){
           const updated=(swSnap.data().list||[]).filter(x=>!(x.ownerUid===curUser.uid&&String(x.tripId)===String(currentShareTripId)));
@@ -601,16 +603,9 @@ async function addSharedEmail(){
   }catch(e){
     return show("trip 저장 실패: "+e.message,"#c00");
   }
-// 3. 테스트 쓰기
-  try{
-    const testRef = db.doc(`users/${theirUid}/test`);
-    await testRef.set({hello: "world"});
-    show("테스트 쓰기 성공!", "#1D9E75");
-  }catch(e){
-    return show("테스트 쓰기 실패: " + e.message, "#c00");
-  }
-  // 3. 상대방 sharedWith 읽기
-  const swRef=db.doc(`users/${theirUid}/sharedWith`);
+
+  // 3. 상대방 sharedWith/data 읽기
+  const swRef=db.doc(`users/${theirUid}/sharedWith/data`);
   let existing=[];
   try{
     const swSnap=await swRef.get();
@@ -620,7 +615,7 @@ async function addSharedEmail(){
     return show("sharedWith 읽기 실패: "+e.message,"#c00");
   }
 
-  // 4. 상대방 sharedWith 쓰기
+  // 4. 상대방 sharedWith/data 쓰기
   try{
     if(!existing.some(x=>x.ownerUid===curUser.uid&&String(x.tripId)===String(currentShareTripId))){
       await swRef.set({list:[...existing,{ownerUid:curUser.uid,tripId:String(currentShareTripId)}]});
