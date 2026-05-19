@@ -601,7 +601,14 @@ async function addSharedEmail(){
   }catch(e){
     return show("trip 저장 실패: "+e.message,"#c00");
   }
-
+// 3. 테스트 쓰기
+  try{
+    const testRef = db.doc(`users/${theirUid}/test`);
+    await testRef.set({hello: "world"});
+    show("테스트 쓰기 성공!", "#1D9E75");
+  }catch(e){
+    return show("테스트 쓰기 실패: " + e.message, "#c00");
+  }
   // 3. 상대방 sharedWith 읽기
   const swRef=db.doc(`users/${theirUid}/sharedWith`);
   let existing=[];
